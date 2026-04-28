@@ -1,0 +1,186 @@
+/* ============================================
+   Home 媒体库主页样式
+   ============================================ */
+
+.home-page {
+  animation: fadeIn var(--transition-normal) ease-out;
+}
+
+.home-welcome {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.home-welcome-text {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  background: var(--color-primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.home-welcome-sub {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+/* 继续观看网格 */
+.continue-watching-grid {
+  display: flex;
+  gap: var(--spacing-md);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-sm);
+  scrollbar-width: none;
+}
+
+.continue-watching-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.continue-card {
+  flex: 0 0 200px;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  transition: all var(--transition-normal);
+  animation: fadeIn 0.3s ease-out both;
+}
+
+.continue-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: var(--color-primary);
+}
+
+.continue-card-poster {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--color-bg-tertiary);
+}
+
+.continue-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.continue-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-bg-tertiary));
+}
+
+.continue-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.continue-card:hover .continue-card-overlay {
+  opacity: 1;
+}
+
+.continue-card-play {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transform: scale(0.8);
+  transition: transform var(--transition-fast);
+}
+
+.continue-card:hover .continue-card-play {
+  transform: scale(1);
+}
+
+/* 进度条 */
+.continue-card-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.continue-card-progress-bar {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.3s ease;
+}
+
+.continue-card-info {
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.continue-card-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.continue-card-meta {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-top: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.continue-card-completed {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.continue-card-time {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* 已看完状态 */
+.continue-card.completed {
+  opacity: 0.7;
+}
+
+.continue-card.completed:hover {
+  opacity: 1;
+}
+
+.continue-card.completed .continue-card-play {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.continue-card-progress-bar.completed {
+  background: var(--color-text-tertiary);
+}
+
+/* 记录数量 */
+.media-row-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-left: var(--spacing-sm);
+}

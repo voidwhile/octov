@@ -1,0 +1,244 @@
+/* ============================================
+   Settings 设置页面样式
+   ============================================ */
+
+.settings-page {
+  animation: fadeIn var(--transition-normal) ease-out;
+  max-width: 640px;
+}
+
+.settings-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.settings-section-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.settings-group {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  overflow: hidden;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  transition: background var(--transition-fast);
+}
+
+.settings-item + .settings-item {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.settings-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.settings-item-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.settings-item-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+}
+
+.settings-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-item-label {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.settings-item-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.settings-item-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* 主题选择器 */
+.settings-theme-options {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.settings-theme-option {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.settings-theme-option.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.settings-theme-option:hover:not(.active) {
+  background: var(--color-bg-hover);
+}
+
+/* 添加文件夹按钮 */
+.settings-add-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px dashed var(--color-primary);
+  width: 100%;
+  justify-content: center;
+  margin-top: var(--spacing-md);
+}
+
+.settings-add-btn:hover {
+  background: var(--color-primary);
+  color: white;
+  border-style: solid;
+}
+
+/* TMDB 配置 */
+.settings-item-column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-md);
+}
+
+.settings-tmdb-input {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding-left: 52px; /* 对齐图标右侧 */
+}
+
+.settings-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  transition: border-color var(--transition-fast);
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.settings-input::placeholder {
+  color: var(--color-text-tertiary);
+  font-family: inherit;
+}
+
+.settings-save-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: white;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settings-save-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.settings-save-btn:disabled {
+  cursor: default;
+}
+
+.settings-save-btn.saved {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.settings-link {
+  color: var(--color-primary);
+  margin-left: var(--spacing-sm);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.settings-link:hover {
+  text-decoration: underline;
+}
+
+/* 关于区域 */
+.settings-about {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.settings-about-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-xl);
+  object-fit: cover;
+  margin: 0 auto var(--spacing-md);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.3);
+}
+
+.settings-about-name {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.settings-about-version {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
+}
+
+.settings-about-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-md);
+  line-height: 1.6;
+}

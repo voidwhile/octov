@@ -1,0 +1,542 @@
+/* ============================================
+   StorageModal 存储管理弹窗样式
+   ============================================ */
+
+.storage-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.storage-modal {
+  width: 640px;
+  max-width: 90vw;
+  height: 480px;
+  max-height: 80vh;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+  display: flex;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 左侧导航栏 */
+.storage-modal-sidebar {
+  width: 180px;
+  background: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border-light);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md);
+}
+
+.storage-modal-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: var(--spacing-lg);
+}
+
+.storage-modal-close:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.storage-modal-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-left: 3px solid transparent;
+  margin-bottom: 2px;
+}
+
+.storage-modal-tab:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.storage-modal-tab.active {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  border-left-color: #4099FF;
+  background: var(--color-bg-hover);
+}
+
+/* 右侧内容区 */
+.storage-modal-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.storage-modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.storage-modal-back {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.storage-modal-back:hover {
+  background: var(--color-bg-hover);
+  color: #4099FF;
+}
+
+.storage-modal-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.storage-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+/* 存储列表项 */
+.storage-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.storage-list-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.storage-list-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.storage-list-icon.aliyundrive {
+  background: linear-gradient(135deg, #6BB8FF, #4099FF);
+  color: white;
+}
+
+.storage-list-icon.local {
+  background: linear-gradient(135deg, #A0E8AF, #4CAF50);
+  color: white;
+}
+
+.storage-list-name {
+  flex: 1;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.storage-list-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.storage-list-item:hover .storage-list-actions {
+  opacity: 1;
+}
+
+.storage-list-action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.storage-list-action-btn:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+}
+
+.storage-list-action-btn.delete:hover {
+  color: #FF6B6B;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* 添加存储类型列表 */
+.storage-type-group {
+  margin-bottom: var(--spacing-xl);
+}
+
+.storage-type-group-title {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.storage-type-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.storage-type-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.storage-type-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.storage-type-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.storage-type-name {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.storage-type-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-left: auto;
+}
+
+/* 添加存储表单 */
+.storage-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.storage-form-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.storage-form-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  min-width: 50px;
+}
+
+.storage-form-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  transition: all var(--transition-fast);
+}
+
+.storage-form-input:focus {
+  border-color: #4099FF;
+  box-shadow: 0 0 0 3px rgba(64, 153, 255, 0.15);
+}
+
+.storage-form-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-xl);
+  background: #4CD964;
+  color: white;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  align-self: flex-start;
+}
+
+.storage-form-submit:hover {
+  background: #3BBF52;
+  transform: translateY(-1px);
+}
+
+.storage-form-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 空状态 */
+.storage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-3xl) 0;
+  color: var(--color-text-tertiary);
+}
+
+/* QR 码内嵌 */
+.storage-qr-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+}
+
+.storage-qr-wrapper {
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: white;
+  padding: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.storage-qr-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.storage-qr-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.storage-qr-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  background: rgba(64, 153, 255, 0.85);
+  color: white;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.storage-success-check {
+  color: #4CD964;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+}
+
+/* ============================================
+   云盘目录浏览样式
+   ============================================ */
+
+/* 面包屑导航 */
+.storage-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-secondary);
+  min-height: 36px;
+}
+
+.storage-breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.storage-breadcrumb-sep {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.storage-breadcrumb-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.storage-breadcrumb-text:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.storage-breadcrumb-text.active {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* 当前文件夹操作栏 */
+.storage-folder-action-bar {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.storage-add-current-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 14px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: white;
+  background: #4099FF;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.storage-add-current-btn:hover {
+  background: #3080E0;
+  transform: translateY(-1px);
+}
+
+.storage-add-current-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 文件夹列表项 */
+.storage-folder-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.storage-folder-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.storage-folder-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  min-width: 0;
+}
+
+.storage-folder-name {
+  flex: 1;
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 文件夹右侧添加按钮 */
+.storage-folder-add-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: #4099FF;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  margin-right: var(--spacing-sm);
+}
+
+.storage-folder-add-btn:hover {
+  background: rgba(64, 153, 255, 0.1);
+}
+
+.storage-folder-add-btn.added {
+  color: #4CD964;
+  cursor: default;
+}
+
+.storage-folder-add-btn:disabled {
+  cursor: not-allowed;
+}
+
+/* 旋转动画 */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

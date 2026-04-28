@@ -1,0 +1,294 @@
+/* ============================================
+   Detail 视频详情页样式
+   ============================================ */
+
+.detail-page {
+  animation: fadeIn var(--transition-normal) ease-out;
+  margin: calc(-1 * var(--spacing-xl));
+  margin-bottom: 0;
+}
+
+/* 背景横幅 */
+.detail-backdrop {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+}
+
+.detail-backdrop-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(0px);
+}
+
+.detail-backdrop-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    var(--color-bg-primary) 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
+
+/* 详情内容 */
+.detail-content {
+  position: relative;
+  margin-top: -160px;
+  padding: 0 var(--spacing-3xl);
+  display: flex;
+  gap: var(--spacing-2xl);
+  z-index: 2;
+}
+
+/* 封面海报 */
+.detail-poster {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.detail-poster img {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+}
+
+/* 信息区 */
+.detail-info {
+  flex: 1;
+  min-width: 0;
+  padding-top: var(--spacing-xl);
+}
+
+.detail-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.detail-original-title {
+  font-size: var(--font-size-md);
+  color: var(--color-text-tertiary);
+  margin-top: var(--spacing-xs);
+}
+
+/* 元数据行 */
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.detail-meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.detail-meta-item.rating {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+.detail-meta-divider {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-text-tertiary);
+}
+
+/* 类型标签 */
+.detail-genres {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.detail-genre-tag {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+/* 播放按钮 */
+.detail-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.detail-play-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--color-primary-gradient);
+  color: white;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(52, 211, 153, 0.3);
+}
+
+.detail-play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(52, 211, 153, 0.4);
+}
+
+/* 简介 */
+.detail-overview {
+  margin-top: var(--spacing-xl);
+  padding: 0 var(--spacing-3xl);
+}
+
+.detail-overview h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.detail-overview p {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+}
+
+/* 电视剧集列表 */
+.detail-episodes {
+  margin-top: var(--spacing-2xl);
+  padding: 0 var(--spacing-3xl) var(--spacing-3xl);
+}
+
+.detail-episodes h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.detail-season-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.detail-season-tab {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.detail-season-tab.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.detail-episode-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.detail-episode-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.detail-episode-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.detail-episode-number {
+  width: 32px;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.detail-episode-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-episode-name {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.detail-episode-duration {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.detail-episode-play {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+
+.detail-episode-item:hover .detail-episode-play {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* 返回按钮 */
+.detail-back {
+  position: absolute;
+  top: var(--spacing-xl);
+  left: var(--spacing-xl);
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.detail-back:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: scale(1.1);
+}

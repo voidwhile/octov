@@ -1,0 +1,605 @@
+/* ============================================
+   AliyunDrive 阿里云盘文件浏览器样式
+   ============================================ */
+
+.aliyun-page {
+  animation: fadeIn var(--transition-normal) ease-out;
+}
+
+/* 连接状态区 */
+.aliyun-connect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: var(--spacing-xl);
+}
+
+.aliyun-connect-icon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6BB8FF, #4099FF);
+  border-radius: var(--radius-xl);
+  color: white;
+  box-shadow: 0 8px 24px rgba(64, 153, 255, 0.3);
+}
+
+.aliyun-connect-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.aliyun-connect-desc {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+/* 配置表单 */
+.aliyun-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: 360px;
+}
+
+.aliyun-config-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.aliyun-config-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  transition: all var(--transition-fast);
+}
+
+.aliyun-config-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.aliyun-config-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.aliyun-config-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: 1.5;
+}
+
+.aliyun-config-hint a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.aliyun-config-hint a:hover {
+  text-decoration: underline;
+}
+
+.aliyun-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: linear-gradient(135deg, #6BB8FF, #4099FF);
+  color: white;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(64, 153, 255, 0.3);
+  min-width: 160px;
+}
+
+.aliyun-login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(64, 153, 255, 0.4);
+}
+
+.aliyun-login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 用户信息 */
+.aliyun-user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  margin-bottom: var(--spacing-xl);
+}
+
+.aliyun-user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.aliyun-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6BB8FF, #4099FF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  overflow: hidden;
+}
+
+.aliyun-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.aliyun-user-name {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.aliyun-user-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.aliyun-logout-btn {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.aliyun-logout-btn:hover {
+  color: #FF6B6B;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+/* 面包屑导航 */
+.aliyun-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.aliyun-breadcrumb-item {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.aliyun-breadcrumb-item:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.aliyun-breadcrumb-item.active {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  cursor: default;
+}
+
+.aliyun-breadcrumb-item.active:hover {
+  background: transparent;
+}
+
+.aliyun-breadcrumb-sep {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+/* 文件列表 */
+.aliyun-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aliyun-file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  animation: fadeIn var(--transition-normal) ease-out;
+  animation-fill-mode: backwards;
+}
+
+.aliyun-file-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.aliyun-file-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.aliyun-file-icon.folder {
+  background: linear-gradient(135deg, #FFD93D, #FF8C00);
+  color: white;
+}
+
+.aliyun-file-icon.video {
+  background: linear-gradient(135deg, #6BB8FF, #4099FF);
+  color: white;
+}
+
+.aliyun-file-icon.other {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
+}
+
+/* 文件缩略图 */
+.aliyun-file-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.aliyun-file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.aliyun-file-name {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aliyun-file-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.aliyun-file-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.aliyun-file-item:hover .aliyun-file-actions {
+  opacity: 1;
+}
+
+.aliyun-file-action-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.aliyun-file-action-btn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* 加载和空状态 */
+.aliyun-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-3xl) 0;
+  color: var(--color-text-tertiary);
+}
+
+.aliyun-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.aliyun-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-3xl) 0;
+  color: var(--color-text-tertiary);
+}
+
+.aliyun-empty-icon {
+  opacity: 0.3;
+}
+
+/* 错误提示 */
+.aliyun-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.aliyun-error-icon {
+  color: #FF6B6B;
+  flex-shrink: 0;
+}
+
+.aliyun-error-text {
+  font-size: var(--font-size-sm);
+  color: #FF6B6B;
+  flex: 1;
+}
+
+/* 视频网格模式 */
+.aliyun-video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.aliyun-video-card {
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-normal);
+  animation: fadeIn var(--transition-normal) ease-out;
+  animation-fill-mode: backwards;
+}
+
+.aliyun-video-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.aliyun-video-card-thumb {
+  aspect-ratio: 16 / 9;
+  background: var(--color-bg-tertiary);
+  position: relative;
+  overflow: hidden;
+}
+
+.aliyun-video-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.aliyun-video-card-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.aliyun-video-card:hover .aliyun-video-card-play {
+  opacity: 1;
+}
+
+.aliyun-video-card-play-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  color: var(--color-primary);
+}
+
+.aliyun-video-card-info {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-light);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.aliyun-video-card-name {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aliyun-video-card-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+/* 视图切换 */
+.aliyun-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+}
+
+.aliyun-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.aliyun-view-toggle {
+  display: flex;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.aliyun-view-btn {
+  width: 32px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.aliyun-view-btn.active {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.aliyun-filter-chip {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.aliyun-filter-chip.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.aliyun-filter-chip:hover:not(.active) {
+  background: var(--color-bg-hover);
+}
+
+/* 扫码二维码区域 */
+.aliyun-qr-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.aliyun-qr-wrapper {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: white;
+  padding: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-normal);
+}
+
+.aliyun-qr-wrapper.expired {
+  opacity: 0.5;
+}
+
+.aliyun-qr-wrapper.scanned {
+  box-shadow: 0 4px 24px rgba(64, 153, 255, 0.3);
+  border: 2px solid #4099FF;
+  padding: 10px;
+}
+
+.aliyun-qr-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.aliyun-qr-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.aliyun-qr-overlay.scanned {
+  background: rgba(64, 153, 255, 0.85);
+  cursor: default;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.aliyun-qr-overlay.success {
+  background: rgba(64, 153, 255, 0.9);
+  cursor: default;
+}
+
+.aliyun-qr-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.5;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.95; }
+}
