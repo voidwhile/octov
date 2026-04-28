@@ -22,11 +22,18 @@ import octovLogo from '../../../../resources/octov-logo.png'
 export default function Sidebar(): JSX.Element {
   const location = useLocation()
   const navigate = useNavigate()
+  const [version, setVersion] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     library: true,
     sources: true
   })
   const [fileSources, setFileSources] = useState<FileSourceItemType[]>([])
+
+  /** 加载版本号 */
+  useEffect(() => {
+    // @ts-ignore
+    window.api.getVersion().then(setVersion)
+  }, [])
 
   /** 加载文件源列表 */
   const loadSources = useCallback(async () => {
@@ -193,7 +200,7 @@ export default function Sidebar(): JSX.Element {
 
       {/* 底部版本 */}
       <div className="sidebar-footer">
-        <div className="sidebar-version">Octov v1.0.0</div>
+        <div className="sidebar-version">Octov v{version || '...'}</div>
       </div>
     </aside>
   )

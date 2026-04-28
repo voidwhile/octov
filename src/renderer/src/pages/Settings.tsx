@@ -18,6 +18,13 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
   const [subtitleKey, setSubtitleKey] = useState('')
   const [subtitleSaved, setSubtitleSaved] = useState(false)
   const [subtitleLoading, setSubtitleLoading] = useState(true)
+  const [version, setVersion] = useState('')
+
+  /** 加载版本号 */
+  useEffect(() => {
+    // @ts-ignore
+    window.api.getVersion().then(setVersion)
+  }, [])
 
   /** 主题选项 */
   const themeOptions: { value: ThemeMode; label: string; icon: JSX.Element }[] = [
@@ -215,7 +222,7 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
           <div className="settings-about">
             <img className="settings-about-logo" src={octovLogo} alt="Octov" />
             <div className="settings-about-name">Octov</div>
-            <div className="settings-about-version">版本 1.0.0</div>
+            <div className="settings-about-version">版本 {version || '...'}</div>
             <div className="settings-about-desc">
               跨平台视频库播放器。支持本地文件和阿里云盘，
               <br />
