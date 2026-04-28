@@ -122,7 +122,9 @@ const api = {
   /** 获取系统主题 */
   getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
   /** 获取平台 */
-  getPlatform: () => ipcRenderer.invoke('get-platform')
+  getPlatform: () => ipcRenderer.invoke('get-platform'),
+  /** 获取应用版本 */
+  getVersion: () => ipcRenderer.invoke('get-version')
 }
 
 // 暴露给渲染进程

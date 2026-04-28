@@ -8,6 +8,10 @@ import { StorageManager } from './storage'
 import { TMDBClient, getTmdbApiKey, setTmdbApiKey } from './tmdb'
 import { MediaScanner } from './scanner'
 import { SubtitleClient, parseSubtitle, getSubtitleApiKey, setSubtitleApiKey } from './subtitle'
+import pkg from '../../package.json'
+
+// 从 package.json 或专门的文件读取版本号
+const APP_VERSION = pkg.version
 
 // 服务实例
 const aliyunDrive = new AliyunDriveClient()
@@ -228,6 +232,10 @@ app.whenReady().then(() => {
   // 获取平台信息
   ipcMain.handle('get-platform', () => {
     return process.platform
+  })
+
+  ipcMain.handle('get-version', () => {
+    return APP_VERSION
   })
 
   // ============================================
