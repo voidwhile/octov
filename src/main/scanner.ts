@@ -6,6 +6,8 @@
 import { AliyunDriveClient } from './aliyundrive'
 import { TMDBClient, ScrapedMetadata } from './tmdb'
 import { FileSourceItem } from './storage'
+import * as fs from 'fs'
+import * as path from 'path'
 
 // ---- 视频格式 ----
 const VIDEO_EXTENSIONS = new Set([
@@ -13,10 +15,21 @@ const VIDEO_EXTENSIONS = new Set([
   'rmvb', 'ts', 'm4v', 'webm', 'mpg', 'mpeg', 'm2ts'
 ])
 
+// ---- 音频格式 ----
+const AUDIO_EXTENSIONS = new Set([
+  'mp3', 'flac', 'wav', 'aac', 'm4a', 'ogg', 'opus', 'wma', 'ape', 'alac', 'aiff'
+])
+
 /** 判断是否为视频文件 */
 function isVideoFile(fileName: string): boolean {
   const ext = fileName.split('.').pop()?.toLowerCase() || ''
   return VIDEO_EXTENSIONS.has(ext)
+}
+
+/** 判断是否为音频文件 */
+function isAudioFile(fileName: string): boolean {
+  const ext = fileName.split('.').pop()?.toLowerCase() || ''
+  return AUDIO_EXTENSIONS.has(ext)
 }
 
 // ---- 集号识别正则 ----
@@ -160,7 +173,7 @@ export interface ScannedMediaItem {
   /** 标题（优先 TMDB，否则文件名解析） */
   title: string
   originalTitle?: string
-  type: 'movie' | 'tvshow'
+  type: 'movie' | 'tvshow' | 'music'
   year?: number
   poster: string
   backdrop?: string
@@ -173,6 +186,8 @@ export interface ScannedMediaItem {
   cloudFileId?: string
   /** 本地文件路径 */
   filePath?: string
+  /** 文件扩展名（小写，如 mp3/flac/wav），用于音乐分类 */
+  fileExt?: string
   /** 文件源类型 */
   source: 'local' | 'aliyundrive'
   /** 文件源 ID */
@@ -215,15 +230,21 @@ export class MediaScanner {
       const rootFiles = await this.aliyunDrive.listFiles(source.path, { limit: 200 })
       const items = rootFiles.items || []
 
-      // 分离文件夹和视频文件
+      // 分离文件夹、视频文件、音频文件
       const folders = items.filter(f => f.type === 'folder')
       const videos = items.filter(f => f.type === 'file' && f.category === 'video')
+      const audios = items.filter(f => f.type === 'file' && f.category === 'audio')
 
       // 处理根目录下的直接视频文件（视为电影）
       for (const video of videos) {
         const parsed = parseFileName(video.name)
         const item = await this.buildMediaItem(video, parsed, source)
         if (item) results.push(item)
+      }
+
+      // 处理根目录下的直接音频文件
+      for (const audio of audios) {
+        results.push(this.buildAliyunMusicItem(audio, source))
       }
 
       // 处理子文件夹
@@ -249,14 +270,17 @@ export class MediaScanner {
       const response = await this.aliyunDrive.listFiles(folder.file_id, { limit: 200 })
       const items = response.items || []
       const subVideos = items.filter(f => f.type === 'file' && f.category === 'video')
+      const subAudios = items.filter(f => f.type === 'file' && f.category === 'audio')
       const subFolders = items.filter(f => f.type === 'folder')
 
       // 检查是否是电视剧文件夹（多个视频文件 + 含集号）
       const episodeVideos = subVideos.filter(v => extractEpisodeNumber(v.name) !== null)
 
       if (subVideos.length >= 2 && episodeVideos.length >= 2) {
-        // 判定为电视剧
-        return [await this.buildTVShowItem(folder, subVideos, source)]
+        // 判定为电视剧，音频文件仍单独处理
+        const tvItem = await this.buildTVShowItem(folder, subVideos, source)
+        const audioItems = subAudios.map(a => this.buildAliyunMusicItem(a, source))
+        return [tvItem, ...audioItems]
       }
 
       // 不是电视剧文件夹，每个视频作为独立电影
@@ -265,6 +289,11 @@ export class MediaScanner {
         const parsed = parseFileName(video.name, folder.name)
         const item = await this.buildMediaItem(video, parsed, source)
         if (item) results.push(item)
+      }
+
+      // 处理音频文件
+      for (const audio of subAudios) {
+        results.push(this.buildAliyunMusicItem(audio, source))
       }
 
       // 递归扫描子文件夹
@@ -372,6 +401,105 @@ export class MediaScanner {
       sourceId: source.id,
       tmdbId: metadata?.tmdbId,
       episodes,
+      scannedAt: new Date().toISOString()
+    }
+  }
+
+  /**
+   * 构建阿里云盘音乐 MediaItem
+   */
+  private buildAliyunMusicItem(file: any, source: FileSourceItem): ScannedMediaItem {
+    // 去掉扩展名作为标题
+    const title = file.name.replace(/\.[^.]+$/, '')
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
+    return {
+      id: `cloud-music-${file.file_id}`,
+      title,
+      type: 'music',
+      poster: '',
+      cloudFileId: file.file_id,
+      fileExt,
+      source: 'aliyundrive',
+      sourceId: source.id,
+      scannedAt: new Date().toISOString()
+    }
+  }
+
+  /**
+   * 扫描本地文件源（视频 + 音频）
+   */
+  async scanLocalSource(source: FileSourceItem): Promise<ScannedMediaItem[]> {
+    const results: ScannedMediaItem[] = []
+
+    const scanDir = async (dirPath: string): Promise<void> => {
+      try {
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+
+        for (const entry of entries) {
+          const fullPath = path.join(dirPath, entry.name)
+
+          if (entry.isDirectory()) {
+            // 递归扫描子目录
+            await scanDir(fullPath)
+          } else if (entry.isFile()) {
+            if (isAudioFile(entry.name)) {
+              // 构建音乐条目
+              const item = this.buildLocalMusicItem(fullPath, entry.name, source)
+              results.push(item)
+            } else if (isVideoFile(entry.name)) {
+              // 构建视频条目
+              const item = this.buildLocalVideoItem(fullPath, entry.name, source)
+              results.push(item)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('扫描本地目录失败:', dirPath, err)
+      }
+    }
+
+    await scanDir(source.path)
+    return results
+  }
+
+  /**
+   * 构建本地音乐 MediaItem
+   */
+  private buildLocalMusicItem(filePath: string, fileName: string, source: FileSourceItem): ScannedMediaItem {
+    // 去掉扩展名作为标题
+    const title = fileName.replace(/\.[^.]+$/, '')
+    const fileExt = fileName.split('.').pop()?.toLowerCase() || ''
+    const id = `local-music-${Buffer.from(filePath).toString('base64').slice(0, 32)}`
+
+    return {
+      id,
+      title,
+      type: 'music',
+      poster: '',
+      filePath,
+      fileExt,
+      source: 'local',
+      sourceId: source.id,
+      scannedAt: new Date().toISOString()
+    }
+  }
+
+  /**
+   * 构建本地视频 MediaItem
+   */
+  private buildLocalVideoItem(filePath: string, fileName: string, source: FileSourceItem): ScannedMediaItem {
+    const parsed = parseFileName(fileName)
+    const id = `local-video-${Buffer.from(filePath).toString('base64').slice(0, 32)}`
+
+    return {
+      id,
+      title: parsed.title || fileName.replace(/\.[^.]+$/, ''),
+      type: parsed.type,
+      year: parsed.year,
+      poster: '',
+      filePath,
+      source: 'local',
+      sourceId: source.id,
       scannedAt: new Date().toISOString()
     }
   }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sun, Moon, Monitor, Palette, Key, Check, MessageSquare } from 'lucide-react'
+import { Sun, Moon, Monitor, Palette, Key, Check, MessageSquare, HardDrive } from 'lucide-react'
 import { ThemeMode } from '../types'
 import './Settings.css'
 import octovLogo from '../../../../resources/octov-logo.png'
@@ -19,6 +19,9 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
   const [subtitleSaved, setSubtitleSaved] = useState(false)
   const [subtitleLoading, setSubtitleLoading] = useState(true)
   const [version, setVersion] = useState('')
+  
+  const [cacheSize, setCacheSize] = useState<number | null>(null)
+  const [isClearingCache, setIsClearingCache] = useState(false)
 
   /** 加载版本号 */
   useEffect(() => {
@@ -33,7 +36,7 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
     { value: 'dark', label: '深色', icon: <Moon size={14} /> }
   ]
 
-  // 加载已保存的 API Keys
+  // 加载已保存的 API Keys 和缓存大小
   useEffect(() => {
     window.appConfig.getTmdbKey().then((result) => {
       if (result.success && result.data) {
@@ -46,6 +49,11 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
         setSubtitleKey(result.data)
       }
       setSubtitleLoading(false)
+    })
+    window.cache.getSize().then((result) => {
+      if (result.success && result.size !== undefined) {
+        setCacheSize(result.size)
+      }
     })
   }, [])
 
@@ -65,6 +73,23 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
       setSubtitleSaved(true)
       setTimeout(() => setSubtitleSaved(false), 2000)
     }
+  }
+
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const handleClearCache = async () => {
+    setIsClearingCache(true)
+    const res = await window.cache.clear()
+    if (res.success) {
+      setCacheSize(0)
+    }
+    setIsClearingCache(false)
   }
 
   return (
@@ -209,6 +234,42 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
                 disabled={subtitleLoading || subtitleSaved}
               >
                 {subtitleSaved ? <><Check size={14} /> 已保存</> : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 存储管理 */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">存储</h3>
+        <div className="settings-group">
+          <div className="settings-item settings-item-column">
+            <div className="settings-item-left">
+              <div className="settings-item-icon" style={{
+                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                color: 'white'
+              }}>
+                <HardDrive size={18} />
+              </div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">应用缓存</span>
+                <span className="settings-item-desc">
+                  清理视频缓冲、图片缓存以及音频临时文件。这不会影响您的播放记录或配置。
+                </span>
+              </div>
+            </div>
+            <div className="settings-tmdb-input" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', paddingLeft: 12 }}>
+                当前占用：{cacheSize !== null ? formatSize(cacheSize) : '加载中...'}
+              </span>
+              <button
+                className="settings-save-btn"
+                onClick={handleClearCache}
+                disabled={isClearingCache || cacheSize === 0 || cacheSize === null}
+                style={{ width: 'auto', padding: '0 16px', background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}
+              >
+                {isClearingCache ? '清理中...' : '清空缓存'}
               </button>
             </div>
           </div>

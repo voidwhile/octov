@@ -3,7 +3,7 @@
 // ============================================
 
 /** 媒体类型 */
-export type MediaType = 'movie' | 'tvshow' | 'other'
+export type MediaType = 'movie' | 'tvshow' | 'other' | 'music'
 
 /** 文件源类型 */
 export type FileSourceType = 'local' | 'aliyundrive'
@@ -49,6 +49,8 @@ export interface MediaItem {
   tmdbId?: number
   /** 所属文件源 ID */
   sourceId?: string
+  /** 文件扩展名（小写，如 mp3/flac/wav），用于音乐分类 */
+  fileExt?: string
 }
 
 /** 电视剧季 */
@@ -283,6 +285,8 @@ declare global {
     cache: {
       loadMedia: () => Promise<{ success: boolean; data: any[] }>
       saveMedia: (items: any[]) => Promise<{ success: boolean }>
+      getAudioSize: () => Promise<{ success: boolean; size?: number }>
+      clearAudio: () => Promise<{ success: boolean; error?: string }>
     }
     playHistory: {
       load: () => Promise<{ success: boolean; data: any[] }>
@@ -293,6 +297,10 @@ declare global {
       setTmdbKey: (key: string) => Promise<{ success: boolean }>
       getSubtitleKey: () => Promise<{ success: boolean; data: string }>
       setSubtitleKey: (key: string) => Promise<{ success: boolean }>
+    }
+    audio: {
+      downloadAndCache: (fileId: string, fileName: string) => Promise<{ success: boolean; path?: string; error?: string }>
+      getLyrics: (title: string) => Promise<{ success: boolean; lyric?: string; error?: string }>
     }
   }
 }

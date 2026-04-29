@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Star } from 'lucide-react'
+import { Play, Star, Film, Tv, Music } from 'lucide-react'
 import { MediaItem } from '../types'
 import './MediaCard.css'
 
@@ -14,6 +15,7 @@ interface MediaCardProps {
 /** 视频卡片组件 */
 export default function MediaCard({ item, large = false, index = 0 }: MediaCardProps): JSX.Element {
   const navigate = useNavigate()
+  const [imgError, setImgError] = useState(false)
 
   /** 计算播放进度百分比 */
   const progressPercent = item.progress
@@ -28,24 +30,54 @@ export default function MediaCard({ item, large = false, index = 0 }: MediaCardP
     return item.releaseDate || item.dateAdded || ''
   }
 
+  /** 处理卡片点击 */
+  const handleCardClick = () => {
+    // 判断是否为音乐文件
+    const ext = item.fileExt?.toLowerCase() || item.filePath?.split('.').pop()?.toLowerCase() || ''
+    const isMusic = ['wav', 'flac', 'mp3'].includes(ext) || item.type === 'music'
+
+    if (isMusic) {
+      navigate(`/music-player/${encodeURIComponent(item.id)}`, {
+        state: {
+          playlist: [item],
+          currentIndex: 0,
+          filePath: item.filePath,
+          cloudFileId: item.cloudFileId,
+          title: item.title,
+          fileExt: item.fileExt
+        }
+      })
+    } else {
+      navigate(`/detail/${item.id}`)
+    }
+  }
+
   return (
     <div
       className={`media-card ${large ? 'large' : ''}`}
-      onClick={() => navigate(`/detail/${item.id}`)}
+      onClick={handleCardClick}
       style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="media-card-poster">
-        <img
-          className="media-card-img"
-          src={large && item.backdrop ? item.backdrop : item.poster}
-          alt={item.title}
-          loading="lazy"
-          onError={(e) => {
-            // 图片加载失败时使用渐变占位
-            const target = e.target as HTMLImageElement
-            target.style.display = 'none'
-          }}
-        />
+        {!imgError ? (
+          <img
+            className="media-card-img"
+            src={large && item.backdrop ? item.backdrop : item.poster}
+            alt={item.title}
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="media-card-fallback">
+            {item.type === 'music' ? (
+              <Music size={large ? 48 : 40} className="media-card-fallback-icon" />
+            ) : item.type === 'tvshow' ? (
+              <Tv size={large ? 48 : 40} className="media-card-fallback-icon" />
+            ) : (
+              <Film size={large ? 48 : 40} className="media-card-fallback-icon" />
+            )}
+          </div>
+        )}
 
         {/* 悬停叠加层 */}
         <div className="media-card-overlay">

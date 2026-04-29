@@ -1,5 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, net } from 'electron'
 import * as http from 'http'
+import * as fs from 'fs'
+import * as os from 'os'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -373,6 +375,104 @@ app.whenReady().then(() => {
     }
   )
 
+  // 下载并缓存云盘音频到临时目录，返回本地路径（避免代理流式传输卡顿）
+  ipcMain.handle('audio:downloadAndCache',
+    async (_event, fileId: string, fileName: string) => {
+      try {
+        // 尝试使用缓存文件（同一文件不重复下载）
+        const cacheDir = join(os.tmpdir(), 'octov-audio-cache')
+        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true })
+        const ext = fileName.split('.').pop() || 'mp3'
+        const cachePath = join(cacheDir, `${fileId}.${ext}`)
+
+        if (fs.existsSync(cachePath)) {
+          return { success: true, path: cachePath }
+        }
+
+        // 获取下载地址
+        const downloadResult = await aliyunDrive.getDownloadUrl(fileId)
+        if (!downloadResult?.url) {
+          return { success: false, error: '获取下载地址失败' }
+        }
+
+        // 主进程直接下载（无 CORS、带正确 Referer）
+        const response = await net.fetch(downloadResult.url, {
+          headers: {
+            'Referer': 'https://www.aliyundrive.com/',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+          }
+        })
+
+        if (!response.ok) {
+          return { success: false, error: `下载失败: HTTP ${response.status}` }
+        }
+
+        // 流式写入临时文件（避免大文件撑爆内存或无响应）
+        if (!response.body) {
+          return { success: false, error: '获取文件流失败' }
+        }
+        
+        await new Promise((resolve, reject) => {
+          const fileStream = fs.createWriteStream(cachePath)
+          const reader = response.body!.getReader()
+          
+          const pump = async () => {
+            try {
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) {
+                  fileStream.end()
+                  resolve(null)
+                  break
+                }
+                if (value) {
+                  fileStream.write(Buffer.from(value))
+                }
+              }
+            } catch (err) {
+              fileStream.end()
+              reject(err)
+            }
+          }
+          pump()
+        })
+        
+        return { success: true, path: cachePath }
+      } catch (err: any) {
+        return { success: false, error: err.message }
+      }
+    }
+  )
+
+  // 获取在线歌词（通过网易云音乐公共API）
+  ipcMain.handle('audio:getLyrics', async (_event, title: string) => {
+    try {
+      // 1. 搜索歌曲
+      const searchRes = await net.fetch(`http://music.163.com/api/search/get/web?s=${encodeURIComponent(title)}&type=1&limit=1`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' }
+      })
+      if (!searchRes.ok) throw new Error('搜索接口请求失败')
+      
+      const searchData = await searchRes.json()
+      const songId = searchData.result?.songs?.[0]?.id
+      if (!songId) return { success: false, error: '未找到匹配的歌曲' }
+
+      // 2. 获取歌词
+      const lyricRes = await net.fetch(`http://music.163.com/api/song/lyric?id=${songId}&lv=1&kv=1&tv=-1`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' }
+      })
+      if (!lyricRes.ok) throw new Error('歌词接口请求失败')
+      
+      const lyricData = await lyricRes.json()
+      const lyric = lyricData.lrc?.lyric
+
+      if (!lyric) return { success: false, error: '该歌曲暂无歌词' }
+      return { success: true, lyric }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
   // 更新播放进度
   ipcMain.handle(
     'aliyun:updatePlayCursor',
@@ -459,7 +559,12 @@ app.whenReady().then(() => {
 
   ipcMain.handle('scanner:scanSource', async (_event, source: any) => {
     try {
-      const results = await mediaScanner.scanAliyunSource(source)
+      let results
+      if (source.storageType === 'local') {
+        results = await mediaScanner.scanLocalSource(source)
+      } else {
+        results = await mediaScanner.scanAliyunSource(source)
+      }
       return { success: true, data: results }
     } catch (err: any) {
       return { success: false, error: err.message }
@@ -509,6 +614,51 @@ app.whenReady().then(() => {
     try {
       const fs = await import('fs')
       fs.writeFileSync(mediaCachePath, JSON.stringify(items), 'utf-8')
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('cache:getSize', async () => {
+    try {
+      const fs = await import('fs')
+      const cacheDir = join(os.tmpdir(), 'octov-audio-cache')
+      let audioSize = 0
+      if (fs.existsSync(cacheDir)) {
+        const files = fs.readdirSync(cacheDir)
+        for (const file of files) {
+          const stats = fs.statSync(join(cacheDir, file))
+          audioSize += stats.size
+        }
+      }
+
+      // 获取 Chromium HTTP 缓存大小 (视频缓冲等)
+      const { session } = require('electron')
+      const sessionSize = await session.defaultSession.getCacheSize()
+      
+      return { success: true, size: audioSize + sessionSize }
+    } catch (err: any) {
+      return { success: false, error: err.message, size: 0 }
+    }
+  })
+
+  ipcMain.handle('cache:clear', async () => {
+    try {
+      const fs = await import('fs')
+      // 1. 清理音频缓存
+      const cacheDir = join(os.tmpdir(), 'octov-audio-cache')
+      if (fs.existsSync(cacheDir)) {
+        const files = fs.readdirSync(cacheDir)
+        for (const file of files) {
+          fs.unlinkSync(join(cacheDir, file))
+        }
+      }
+
+      // 2. 清理 Chromium 缓存 (视频缓冲、图片缓存等)
+      const { session } = require('electron')
+      await session.defaultSession.clearCache()
+      
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err.message }
