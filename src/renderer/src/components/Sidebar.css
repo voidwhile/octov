@@ -198,3 +198,21 @@
   color: var(--color-text-primary);
   letter-spacing: -0.3px;
 }
+
+/* 格式分类子项 */
+.sidebar-item-sub {
+  padding-left: calc(var(--spacing-md) + 16px);
+}
+
+/* 格式色点 */
+.sidebar-item-format-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sidebar-item-format-dot.mp3  { background: #f97316; }
+.sidebar-item-format-dot.flac { background: #8b5cf6; }
+.sidebar-item-format-dot.wav  { background: #06b6d4; }
+.sidebar-item-format-dot.other { background: var(--color-text-tertiary); }

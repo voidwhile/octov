@@ -41,6 +41,16 @@ const aliyunApi = {
     ipcRenderer.invoke('aliyun:getProxyUrl', url)
 }
 
+// 音频缓存 API
+const audioApi = {
+  /** 下载云盘音频到临时目录，返回本地文件路径 */
+  downloadAndCache: (fileId: string, fileName: string) =>
+    ipcRenderer.invoke('audio:downloadAndCache', fileId, fileName),
+  /** 联网获取歌词 */
+  getLyrics: (title: string) =>
+    ipcRenderer.invoke('audio:getLyrics', title)
+}
+
 // 存储管理 API
 const storageApi = {
   /** 获取所有存储账户 */
@@ -92,7 +102,11 @@ const cacheApi = {
   /** 加载媒体缓存 */
   loadMedia: () => ipcRenderer.invoke('cache:loadMedia'),
   /** 保存媒体缓存 */
-  saveMedia: (items: any[]) => ipcRenderer.invoke('cache:saveMedia', items)
+  saveMedia: (items: any[]) => ipcRenderer.invoke('cache:saveMedia', items),
+  /** 获取应用缓存大小 (包含音频缓存和视频/网页缓存) */
+  getSize: () => ipcRenderer.invoke('cache:getSize'),
+  /** 清理应用缓存 */
+  clear: () => ipcRenderer.invoke('cache:clear')
 }
 
 // 播放记录 API
@@ -140,6 +154,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('cache', cacheApi)
     contextBridge.exposeInMainWorld('playHistory', historyApi)
     contextBridge.exposeInMainWorld('appConfig', configApi)
+    contextBridge.exposeInMainWorld('audio', audioApi)
   } catch (error) {
     console.error(error)
   }
@@ -164,4 +179,6 @@ if (process.contextIsolated) {
   window.playHistory = historyApi
   // @ts-ignore
   window.appConfig = configApi
+  // @ts-ignore
+  window.audio = audioApi
 }

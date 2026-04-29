@@ -70,10 +70,10 @@ export async function scanAllSources(force = false): Promise<void> {
     // 获取所有文件源
     const sources: FileSourceItemType[] = await window.storage.getSources()
 
-    // 筛选阿里云盘类型的文件源
-    const cloudSources = sources.filter(s => s.storageType === 'aliyundrive')
+    // 全量文件源（云盘 + 本地）
+    const allSources = sources
 
-    if (cloudSources.length === 0) {
+    if (allSources.length === 0) {
       cloudMediaItems = []
       hasScanned = true
       isScanning = false
@@ -85,7 +85,7 @@ export async function scanAllSources(force = false): Promise<void> {
 
     const allItems: MediaItem[] = []
 
-    for (const source of cloudSources) {
+    for (const source of allSources) {
       try {
         const result = await window.scanner.scanSource(source)
         if (result.success && result.data) {
@@ -106,7 +106,9 @@ export async function scanAllSources(force = false): Promise<void> {
               dateAdded: item.scannedAt || new Date().toISOString(),
               releaseDate: item.releaseDate,
               cloudFileId: item.cloudFileId,
-              source: 'aliyundrive',
+              filePath: item.filePath,
+              fileExt: item.fileExt,
+              source: item.source,
               sourceId: item.sourceId,
               tmdbId: item.tmdbId,
               // 电视剧剧集转换
@@ -179,6 +181,11 @@ export function getLibraryMovies(): MediaItem[] {
 /** 获取电视剧列表 */
 export function getLibraryTVShows(): MediaItem[] {
   return cloudMediaItems.filter(i => i.type === 'tvshow')
+}
+
+/** 获取音乐列表 */
+export function getLibraryMusic(): MediaItem[] {
+  return cloudMediaItems.filter(i => i.type === 'music')
 }
 
 /** 获取继续观看列表（有播放进度的） */

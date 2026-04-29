@@ -335,9 +335,9 @@ export class AliyunDriveClient {
   }
 
   /**
-   * 发送 API 请求（自动处理 token 刷新）
+   * 发送 API 请求（自动处理 token 刷新和 429 限流）
    */
-  private async apiRequest(path: string, body: any, _retried = false): Promise<any> {
+  private async apiRequest(path: string, body: any, retryCount = 0): Promise<any> {
     // 请求前先确保 token 有效
     await this.ensureValidToken()
 
@@ -352,21 +352,40 @@ export class AliyunDriveClient {
 
     if (!response.ok) {
       const errText = await response.text()
+      
+      // 处理 429 限流
+      if (response.status === 429 && retryCount < 5) {
+        try {
+          const errJson = JSON.parse(errText)
+          if (errJson.code === 'TooManyRequests' || errJson.code === 'TooManyRequests') {
+            const match = errJson.message?.match(/等待\s*(\d+)\s*毫秒/)
+            const waitMs = match ? parseInt(match[1], 10) : 1000
+            console.log(`[Rate Limit] API 返回 429 触发限流，等待 ${waitMs}ms 后重试 (重试次数: ${retryCount + 1})...`)
+            await new Promise(resolve => setTimeout(resolve, waitMs + 200)) // 额外加200ms缓冲
+            return this.apiRequest(path, body, retryCount + 1)
+          }
+        } catch {
+          // JSON 解析失败则忽略，走兜底报错
+        }
+      }
+
       // token 过期，尝试刷新后重试一次
-      if (response.status === 401 && !_retried && this.config.token?.refresh_token) {
+      if (response.status === 401 && retryCount === 0 && this.config.token?.refresh_token) {
         console.log('API 返回 401，尝试刷新 token...')
         try {
           await this.refreshToken()
-          return this.apiRequest(path, body, true)
+          return this.apiRequest(path, body, retryCount + 1)
         } catch {
           throw new Error('登录已过期，请重新登录')
         }
       }
+      
       if (response.status === 401) {
         delete this.config.token
         saveConfig(this.config)
         throw new Error('登录已过期，请重新登录')
       }
+      
       throw new Error(`API 错误 ${response.status}: ${errText}`)
     }
 

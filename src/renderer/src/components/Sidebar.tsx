@@ -1,4 +1,4 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Play,
   Clock,
@@ -11,7 +11,8 @@ import {
   HardDrive,
   Cloud,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Music
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { FileSourceItemType } from '../types'
@@ -25,6 +26,7 @@ export default function Sidebar(): JSX.Element {
   const [version, setVersion] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     library: true,
+    music: true,
     sources: true
   })
   const [fileSources, setFileSources] = useState<FileSourceItemType[]>([])
@@ -132,6 +134,63 @@ export default function Sidebar(): JSX.Element {
 
         <div className="sidebar-divider" />
 
+        {/* 音乐库分组 */}
+        <div className="sidebar-group">
+          <div className="sidebar-group-header" onClick={() => toggleGroup('music')}>
+            <span className="sidebar-group-title">音乐库</span>
+            <ChevronDown
+              className={`sidebar-group-arrow ${!expandedGroups.music ? 'collapsed' : ''}`}
+            />
+          </div>
+
+          {expandedGroups.music && (
+            <>
+              <NavLink
+                to="/music"
+                end
+                className={({ isActive: a }) => `sidebar-item ${a ? 'active' : ''}`}
+              >
+                <Music className="sidebar-item-icon" />
+                <span className="sidebar-item-label">全部</span>
+              </NavLink>
+
+              <NavLink
+                to="/music/format/mp3"
+                className={({ isActive: a }) => `sidebar-item sidebar-item-sub ${a ? 'active' : ''}`}
+              >
+                <span className="sidebar-item-format-dot mp3" />
+                <span className="sidebar-item-label">MP3</span>
+              </NavLink>
+
+              <NavLink
+                to="/music/format/flac"
+                className={({ isActive: a }) => `sidebar-item sidebar-item-sub ${a ? 'active' : ''}`}
+              >
+                <span className="sidebar-item-format-dot flac" />
+                <span className="sidebar-item-label">FLAC</span>
+              </NavLink>
+
+              <NavLink
+                to="/music/format/wav"
+                className={({ isActive: a }) => `sidebar-item sidebar-item-sub ${a ? 'active' : ''}`}
+              >
+                <span className="sidebar-item-format-dot wav" />
+                <span className="sidebar-item-label">WAV</span>
+              </NavLink>
+
+              <NavLink
+                to="/music/format/other"
+                className={({ isActive: a }) => `sidebar-item sidebar-item-sub ${a ? 'active' : ''}`}
+              >
+                <span className="sidebar-item-format-dot other" />
+                <span className="sidebar-item-label">其他格式</span>
+              </NavLink>
+            </>
+          )}
+        </div>
+
+        <div className="sidebar-divider" />
+
         {/* 文件源分组 - 动态数据驱动 */}
         <div className="sidebar-group">
           <div
@@ -165,22 +224,38 @@ export default function Sidebar(): JSX.Element {
                   </span>
                 </NavLink>
               ) : (
-                fileSources.map(source => (
-                  <NavLink
-                    key={source.id}
-                    to={source.storageType === 'aliyundrive'
-                      ? `/sources/aliyun?folderId=${source.path}&name=${encodeURIComponent(source.name)}`
-                      : `/sources/local?path=${encodeURIComponent(source.path)}`
+                fileSources.map(source => {
+                  // 精确匹配：比较 folderId 或 path 参数，避免同 pathname 多个来源同时高亮
+                  const sourceUrl = source.storageType === 'aliyundrive'
+                    ? `/sources/aliyun?folderId=${source.path}&name=${encodeURIComponent(source.name)}`
+                    : `/sources/local?path=${encodeURIComponent(source.path)}`
+
+                  const isSourceActive = (() => {
+                    if (source.storageType === 'aliyundrive') {
+                      const params = new URLSearchParams(location.search)
+                      return location.pathname === '/sources/aliyun' &&
+                        params.get('folderId') === source.path
+                    } else {
+                      const params = new URLSearchParams(location.search)
+                      return location.pathname === '/sources/local' &&
+                        params.get('path') === source.path
                     }
-                    className="sidebar-item"
-                  >
-                    {source.storageType === 'aliyundrive'
-                      ? <Cloud className="sidebar-item-icon" />
-                      : <HardDrive className="sidebar-item-icon" />
-                    }
-                    <span className="sidebar-item-label">{source.name}</span>
-                  </NavLink>
-                ))
+                  })()
+
+                  return (
+                    <Link
+                      key={source.id}
+                      to={sourceUrl}
+                      className={`sidebar-item ${isSourceActive ? 'active' : ''}`}
+                    >
+                      {source.storageType === 'aliyundrive'
+                        ? <Cloud className="sidebar-item-icon" />
+                        : <HardDrive className="sidebar-item-icon" />
+                      }
+                      <span className="sidebar-item-label">{source.name}</span>
+                    </Link>
+                  )
+                })
               )}
             </>
           )}

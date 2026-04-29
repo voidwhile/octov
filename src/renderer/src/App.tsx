@@ -10,6 +10,8 @@ import Settings from './pages/Settings'
 import SearchPage from './pages/Search'
 import AliyunDrivePage from './pages/AliyunDrive'
 import FileSources from './pages/FileSources'
+import MusicPage from './pages/Music'
+import MusicPlayer from './pages/MusicPlayer'
 import { useTheme } from './hooks/useTheme'
 import './App.css'
 
@@ -20,6 +22,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/movies': '电影',
   '/tvshows': '电视剧',
   '/other': '其他',
+  '/music': '音乐',
   '/sources': '文件源',
   '/sources/local': '本地文件',
   '/sources/aliyun': '阿里云盘',
@@ -31,6 +34,10 @@ const PAGE_TITLES: Record<string, string> = {
 function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/detail/')) return '详情'
   if (pathname.startsWith('/search')) return '搜索结果'
+  if (pathname.startsWith('/music/format/')) {
+    const fmt = pathname.split('/').pop()?.toUpperCase() || ''
+    return `音乐 · ${fmt === 'OTHER' ? '其他格式' : fmt}`
+  }
   return PAGE_TITLES[pathname] || '媒体库'
 }
 
@@ -67,6 +74,8 @@ function MainLayout(): JSX.Element {
             <Route path="/search" element={<SearchPage />} />
             {/* 其他预留路由 */}
             <Route path="/other" element={<div className="media-row-empty" style={{height: '300px'}}>功能开发中...</div>} />
+            <Route path="/music" element={<MusicPage />} />
+            <Route path="/music/format/:format" element={<MusicPage />} />
             <Route path="/sources" element={<FileSources />} />
             <Route path="/sources/local" element={<div className="media-row-empty" style={{height: '300px'}}>功能开发中...</div>} />
             <Route path="/sources/aliyun" element={<AliyunDrivePage />} />
@@ -84,6 +93,7 @@ export default function App(): JSX.Element {
       <Routes>
         <Route path="/player/cloud/:fileId" element={<Player />} />
         <Route path="/player/:id" element={<Player />} />
+        <Route path="/music-player/:id" element={<MusicPlayer />} />
         <Route path="/*" element={<MainLayout />} />
       </Routes>
     </Router>
