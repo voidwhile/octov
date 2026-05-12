@@ -209,6 +209,34 @@
   text-decoration: underline;
 }
 
+/* 云盘解除授权按钮 */
+.settings-drive-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.settings-drive-logout-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.settings-drive-logout-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* 关于区域 */
 .settings-about {
   text-align: center;

@@ -285,8 +285,8 @@ declare global {
     cache: {
       loadMedia: () => Promise<{ success: boolean; data: any[] }>
       saveMedia: (items: any[]) => Promise<{ success: boolean }>
-      getAudioSize: () => Promise<{ success: boolean; size?: number }>
-      clearAudio: () => Promise<{ success: boolean; error?: string }>
+      getSize: () => Promise<{ success: boolean; size?: number }>
+      clear: () => Promise<{ success: boolean; error?: string }>
     }
     playHistory: {
       load: () => Promise<{ success: boolean; data: any[] }>
