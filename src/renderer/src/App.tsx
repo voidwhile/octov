@@ -10,6 +10,7 @@ import Settings from './pages/Settings'
 import SearchPage from './pages/Search'
 import AliyunDrivePage from './pages/AliyunDrive'
 import FileSources from './pages/FileSources'
+import LocalFilesPage from './pages/LocalFiles'
 import MusicPage from './pages/Music'
 import MusicPlayer from './pages/MusicPlayer'
 import { useTheme } from './hooks/useTheme'
@@ -77,7 +78,7 @@ function MainLayout(): JSX.Element {
             <Route path="/music" element={<MusicPage />} />
             <Route path="/music/format/:format" element={<MusicPage />} />
             <Route path="/sources" element={<FileSources />} />
-            <Route path="/sources/local" element={<div className="media-row-empty" style={{height: '300px'}}>功能开发中...</div>} />
+            <Route path="/sources/local" element={<LocalFilesPage />} />
             <Route path="/sources/aliyun" element={<AliyunDrivePage />} />
           </Routes>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Sun, Moon, Monitor, Palette, Key, Check, MessageSquare, HardDrive } from 'lucide-react'
+import { Sun, Moon, Monitor, Palette, Key, Check, MessageSquare, HardDrive, Cloud, LogOut, User } from 'lucide-react'
 import { ThemeMode } from '../types'
+import { useAliyunDrive } from '../hooks/useAliyunDrive'
 import './Settings.css'
 import octovLogo from '../../../../resources/octov-logo.png'
 
@@ -22,6 +23,20 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
   
   const [cacheSize, setCacheSize] = useState<number | null>(null)
   const [isClearingCache, setIsClearingCache] = useState(false)
+
+  // 阿里云盘账号状态
+  const drive = useAliyunDrive()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  /** 解除云盘授权 */
+  const handleDriveLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await drive.logout()
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
 
   /** 加载版本号 */
   useEffect(() => {
@@ -236,6 +251,57 @@ export default function Settings({ theme, onThemeChange }: SettingsProps): JSX.E
                 {subtitleSaved ? <><Check size={14} /> 已保存</> : '保存'}
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 阿里云盘账号 */}
+      <section className="settings-section">
+        <h3 className="settings-section-title">阿里云盘</h3>
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-item-icon" style={{
+                background: drive.status.isLoggedIn
+                  ? 'linear-gradient(135deg, #FF6A00, #EE0979)'
+                  : 'var(--color-bg-tertiary)',
+                color: drive.status.isLoggedIn ? 'white' : 'var(--color-text-secondary)'
+              }}>
+                {drive.status.userInfo?.avatar ? (
+                  <img
+                    src={drive.status.userInfo.avatar}
+                    alt=""
+                    style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : drive.status.isLoggedIn ? (
+                  <User size={18} />
+                ) : (
+                  <Cloud size={18} />
+                )}
+              </div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">
+                  {drive.status.isLoggedIn
+                    ? (drive.status.userInfo?.user_name || '阿里云盘用户')
+                    : '未连接'}
+                </span>
+                <span className="settings-item-desc">
+                  {drive.status.isLoggedIn
+                    ? '已授权，可在云盘页面浏览和播放视频'
+                    : '前往「云盘」页面扫码授权'}
+                </span>
+              </div>
+            </div>
+            {drive.status.isLoggedIn && (
+              <button
+                className="settings-drive-logout-btn"
+                onClick={handleDriveLogout}
+                disabled={isLoggingOut}
+              >
+                <LogOut size={14} />
+                {isLoggingOut ? '退出中...' : '解除授权'}
+              </button>
+            )}
           </div>
         </div>
       </section>
