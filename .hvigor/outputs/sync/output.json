@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "ohos-module-entry": {
+    "SELECT_TARGET": "default",
+    "MODULE_BUILD_DIR": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build",
+    "TARGETS": {
+      "default": {
+        "SOURCE_ROOT": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\src\\main",
+        "RESOURCES_PATH": [
+          "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\src\\main\\resources"
+        ],
+        "BUILD_PATH": {
+          "OUTPUT_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\outputs\\default",
+          "INTERMEDIA_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates",
+          "JS_ASSETS_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\loader_out\\default",
+          "JS_LITE_ASSETS_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\loader_out_lite\\default",
+          "RES_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\res\\default",
+          "RES_PROFILE_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\res\\default\\resources\\base\\profile",
+          "ETS_SUPER_VISUAL_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\cache\\default\\default@CompileArkTS\\esmodule",
+          "JS_SUPER_VISUAL_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\cache\\default\\default@CompileJS\\jsbundle",
+          "WORKER_LOADER": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\loader\\default\\loader.json",
+          "MANIFEST_JSON": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\manifest\\default",
+          "OUTPUT_METADATA_JSON": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\hap_metadata\\default\\output_metadata.json",
+          "SOURCE_MAP_DIR": "C:\\Users\\king\\work\\src\\octov\\hm\\entry\\build\\default\\intermediates\\source_map\\default"
+        },
+        "BUILD_OPTION": {
+          "debuggable": true
+        }
+      }
+    },
+    "BUILD_OPTION": {
+      "default-default": {
+        "debuggable": true,
+        "copyFrom": "default",
+        "strictMode": {
+          "caseSensitiveCheck": true,
+          "useNormalizedOHMUrl": true
+        }
+      }
+    },
+    "BUILD_PROFILE_OPT": {
+      "apiType": "stageMode",
+      "buildOption": {},
+      "targets": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    "BUILD_CACHE_DIR": ""
+  },
+  "ohos-project": {
+    "SELECT_PRODUCT_NAME": "default",
+    "MODULE_BUILD_DIR": "C:\\Users\\king\\work\\src\\octov\\hm\\build",
+    "BUNDLE_NAME": "com.octo.octov",
+    "VERSION_CODE": 1002000,
+    "VERSION_NAME": "1.0.2",
+    "BUILD_PATH": {
+      "OUTPUT_PATH": "C:\\Users\\king\\work\\src\\octov\\hm\\build\\outputs\\default"
+    },
+    "MODULES": [
+      {
+        "name": "entry",
+        "srcPath": "C:\\Users\\king\\work\\src\\octov\\hm\\entry",
+        "targets": [
+          {
+            "name": "default",
+            "applyToProducts": [
+              "default"
+            ]
+          }
+        ],
+        "belongProjectPath": "C:\\Users\\king\\work\\src\\octov\\hm"
+      }
+    ],
+    "PROFILE_OPT": {
+      "app": {
+        "signingConfigs": [
+          {
+            "name": "default",
+            "type": "HarmonyOS",
+            "material": {
+              "certpath": "C:\\Users\\king\\.ohos\\config\\default_hm_tjuDnswZFHcoKUFvE59vNwc0rGdYaEspycQeW5u6Qc8=.cer",
+              "keyAlias": "debugKey",
+              "keyPassword": "0000001B05D5DE9F42A1E4EF5D31C945E6FFC216F3A53850059C44C6FE6DBE51F7E1648FA8161F8DD9BE61",
+              "profile": "C:\\Users\\king\\.ohos\\config\\default_hm_tjuDnswZFHcoKUFvE59vNwc0rGdYaEspycQeW5u6Qc8=.p7b",
+              "signAlg": "SHA256withECDSA",
+              "storeFile": "C:\\Users\\king\\.ohos\\config\\default_hm_tjuDnswZFHcoKUFvE59vNwc0rGdYaEspycQeW5u6Qc8=.p12",
+              "storePassword": "0000001BFF742A09F76615500514533D5E187328ABCE054726854BF3FF5452ADD40282F561A64D57AC6595"
+            }
+          }
+        ],
+        "products": [
+          {
+            "name": "default",
+            "targetSdkVersion": "6.0.2(22)",
+            "compatibleSdkVersion": "6.0.2(22)",
+            "runtimeOS": "HarmonyOS",
+            "buildOption": {
+              "strictMode": {
+                "caseSensitiveCheck": true,
+                "useNormalizedOHMUrl": true
+              }
+            }
+          }
+        ],
+        "buildModeSet": [
+          {
+            "name": "debug"
+          },
+          {
+            "name": "release"
+          }
+        ]
+      },
+      "modules": [
+        {
+          "name": "entry",
+          "srcPath": "./entry",
+          "targets": [
+            {
+              "name": "default",
+              "applyToProducts": [
+                "default"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "CONFIG_PROPERTIES": {
+      "enableSignTask": true,
+      "skipNativeIncremental": false,
+      "hvigor.keepDependency": true
+    },
+    "OVERALL_PROJECT_PATHS": [
+      "C:\\Users\\king\\work\\src\\octov\\hm"
+    ],
+    "BUILD_CACHE_DIR": ""
+  }
+}

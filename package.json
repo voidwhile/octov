@@ -1,0 +1,20 @@
+{
+  "name": "octov",
+  "version": "1.0.2",
+  "description": "Octov HarmonyOS project",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "sync-env": "powershell -ExecutionPolicy Bypass -File .\\scripts\\sync-env-to-arkts.ps1"
+  },
+  "ohos": {
+    "org": "huawei",
+    "directoryLevel": "project",
+    "buildTool": "hvigor"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@ohos/hvigor": "5.0.0",
+    "@ohos/hvigor-ohos-plugin": "5.0.0"
+  }
+}

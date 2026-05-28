@@ -1,0 +1,9 @@
+{
+  "name": "entry",
+  "version": "1.0.2",
+  "description": "Octov entry module",
+  "main": "",
+  "author": "octo",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

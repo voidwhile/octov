@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Octov on HarmonyOS 6.0"
+    },
+    {
+      "name": "entry_ability_desc",
+      "value": "Main ability for Octov HM"
+    }
+  ]
+}
