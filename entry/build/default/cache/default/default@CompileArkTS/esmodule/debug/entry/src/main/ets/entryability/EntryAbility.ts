@@ -3,11 +3,13 @@ import UIAbility from "@ohos:app.ability.UIAbility";
 import type Want from "@ohos:app.ability.Want";
 import type window from "@ohos:window";
 import hilog from "@ohos:hilog";
+import { OctovRepository } from "@normalized:N&&&entry/src/main/ets/services/OctovServices&";
 const DOMAIN_NUMBER: number = 0xFF00;
 const TAG: string = 'EntryAbility';
 export default class EntryAbility extends UIAbility {
     onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
         hilog.info(DOMAIN_NUMBER, TAG, 'Ability onCreate');
+        OctovRepository.shared().setAbilityContext(this.context);
     }
     onWindowStageCreate(windowStage: window.WindowStage): void {
         windowStage.loadContent('pages/Index', (err) => {

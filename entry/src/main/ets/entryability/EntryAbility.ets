@@ -1,6 +1,7 @@
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { OctovRepository } from '../services/OctovServices'
 
 const DOMAIN_NUMBER: number = 0xFF00
 const TAG: string = 'EntryAbility'
@@ -8,6 +9,7 @@ const TAG: string = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN_NUMBER, TAG, 'Ability onCreate')
+    OctovRepository.shared().setAbilityContext(this.context)
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {

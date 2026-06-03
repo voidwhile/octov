@@ -11,6 +11,7 @@ interface Index_Params {
     sources?: FileSourceItem[];
     activeSourceId?: string;
     sourceManagementView?: 'overview' | 'aliyun-auth';
+    playbackExperienceOpen?: boolean;
     sourceBrowserEntries?: SourceBrowserEntry[];
     sourceBrowserName?: string;
     sourceBrowserStorageType?: 'local' | 'aliyundrive';
@@ -26,14 +27,21 @@ interface Index_Params {
     playback?: PlaybackSession;
     keyword?: string;
     subtitleResults?: string;
+    activeSubtitleText?: string;
+    subtitleCues?: Array<SubtitleCue>;
+    lyricLines?: Array<LyricLine>;
+    currentLyricIndex?: number;
     statusMessage?: string;
     horizontalScroller?: Scroller;
     aliyunPollingTimer?: number;
     aliyunPollingInFlight?: boolean;
+    playbackRefreshTimer?: number;
+    videoSurfaceController?: XComponentController;
+    videoSurfaceId?: string;
 }
 import ConfigurationConstant from "@ohos:app.ability.ConfigurationConstant";
 import type common from "@ohos:app.ability.common";
-import type { AliyunDriveStatus, AliyunQrSession, AppSettings, EpisodeItem, FileSourceItem, MediaItem, NavigationSection, OctovSnapshot, PlaybackQualityItem, PlaybackSession, SeasonItem, SectionId, SourceBrowserEntry, SourceBrowserFilter, SourceBrowserSnapshot, SourceBrowserViewMode, SourceBreadcrumbItem, StorageAccount } from '../models/OctovModels';
+import type { AliyunDriveStatus, AliyunQrSession, AppSettings, EpisodeItem, FileSourceItem, MediaItem, NavigationSection, OctovSnapshot, PlaybackQualityItem, PlaybackSession, SeasonItem, SectionId, SubtitleCue, LyricLine, SourceBrowserEntry, SourceBrowserFilter, SourceBrowserSnapshot, SourceBrowserViewMode, SourceBreadcrumbItem, StorageAccount } from '../models/OctovModels';
 import { OctovRepository } from "@normalized:N&&&entry/src/main/ets/services/OctovServices&";
 const sections: NavigationSection[] = [
     { id: 'home', title: '首页', subtitle: '继续观看与推荐内容' },
@@ -60,6 +68,7 @@ class Index extends ViewPU {
         this.__sources = new ObservedPropertyObjectPU([], this, "sources");
         this.__activeSourceId = new ObservedPropertySimplePU('', this, "activeSourceId");
         this.__sourceManagementView = new ObservedPropertySimplePU('overview', this, "sourceManagementView");
+        this.__playbackExperienceOpen = new ObservedPropertySimplePU(false, this, "playbackExperienceOpen");
         this.__sourceBrowserEntries = new ObservedPropertyObjectPU([], this, "sourceBrowserEntries");
         this.__sourceBrowserName = new ObservedPropertySimplePU('', this, "sourceBrowserName");
         this.__sourceBrowserStorageType = new ObservedPropertySimplePU('local', this, "sourceBrowserStorageType");
@@ -87,10 +96,17 @@ class Index extends ViewPU {
         }, this, "playback");
         this.__keyword = new ObservedPropertySimplePU('', this, "keyword");
         this.__subtitleResults = new ObservedPropertySimplePU('', this, "subtitleResults");
+        this.__activeSubtitleText = new ObservedPropertySimplePU('', this, "activeSubtitleText");
+        this.__subtitleCues = new ObservedPropertyObjectPU([], this, "subtitleCues");
+        this.__lyricLines = new ObservedPropertyObjectPU([], this, "lyricLines");
+        this.__currentLyricIndex = new ObservedPropertySimplePU(-1, this, "currentLyricIndex");
         this.__statusMessage = new ObservedPropertySimplePU('准备就绪', this, "statusMessage");
         this.horizontalScroller = new Scroller();
         this.aliyunPollingTimer = -1;
         this.aliyunPollingInFlight = false;
+        this.playbackRefreshTimer = -1;
+        this.videoSurfaceController = new XComponentController();
+        this.videoSurfaceId = '';
         this.setInitiallyProvidedValue(params);
         this.finalizeConstruction();
     }
@@ -121,6 +137,9 @@ class Index extends ViewPU {
         }
         if (params.sourceManagementView !== undefined) {
             this.sourceManagementView = params.sourceManagementView;
+        }
+        if (params.playbackExperienceOpen !== undefined) {
+            this.playbackExperienceOpen = params.playbackExperienceOpen;
         }
         if (params.sourceBrowserEntries !== undefined) {
             this.sourceBrowserEntries = params.sourceBrowserEntries;
@@ -167,6 +186,18 @@ class Index extends ViewPU {
         if (params.subtitleResults !== undefined) {
             this.subtitleResults = params.subtitleResults;
         }
+        if (params.activeSubtitleText !== undefined) {
+            this.activeSubtitleText = params.activeSubtitleText;
+        }
+        if (params.subtitleCues !== undefined) {
+            this.subtitleCues = params.subtitleCues;
+        }
+        if (params.lyricLines !== undefined) {
+            this.lyricLines = params.lyricLines;
+        }
+        if (params.currentLyricIndex !== undefined) {
+            this.currentLyricIndex = params.currentLyricIndex;
+        }
         if (params.statusMessage !== undefined) {
             this.statusMessage = params.statusMessage;
         }
@@ -178,6 +209,15 @@ class Index extends ViewPU {
         }
         if (params.aliyunPollingInFlight !== undefined) {
             this.aliyunPollingInFlight = params.aliyunPollingInFlight;
+        }
+        if (params.playbackRefreshTimer !== undefined) {
+            this.playbackRefreshTimer = params.playbackRefreshTimer;
+        }
+        if (params.videoSurfaceController !== undefined) {
+            this.videoSurfaceController = params.videoSurfaceController;
+        }
+        if (params.videoSurfaceId !== undefined) {
+            this.videoSurfaceId = params.videoSurfaceId;
         }
     }
     updateStateVars(params: Index_Params) {
@@ -192,6 +232,7 @@ class Index extends ViewPU {
         this.__sources.purgeDependencyOnElmtId(rmElmtId);
         this.__activeSourceId.purgeDependencyOnElmtId(rmElmtId);
         this.__sourceManagementView.purgeDependencyOnElmtId(rmElmtId);
+        this.__playbackExperienceOpen.purgeDependencyOnElmtId(rmElmtId);
         this.__sourceBrowserEntries.purgeDependencyOnElmtId(rmElmtId);
         this.__sourceBrowserName.purgeDependencyOnElmtId(rmElmtId);
         this.__sourceBrowserStorageType.purgeDependencyOnElmtId(rmElmtId);
@@ -207,6 +248,10 @@ class Index extends ViewPU {
         this.__playback.purgeDependencyOnElmtId(rmElmtId);
         this.__keyword.purgeDependencyOnElmtId(rmElmtId);
         this.__subtitleResults.purgeDependencyOnElmtId(rmElmtId);
+        this.__activeSubtitleText.purgeDependencyOnElmtId(rmElmtId);
+        this.__subtitleCues.purgeDependencyOnElmtId(rmElmtId);
+        this.__lyricLines.purgeDependencyOnElmtId(rmElmtId);
+        this.__currentLyricIndex.purgeDependencyOnElmtId(rmElmtId);
         this.__statusMessage.purgeDependencyOnElmtId(rmElmtId);
     }
     aboutToBeDeleted() {
@@ -219,6 +264,7 @@ class Index extends ViewPU {
         this.__sources.aboutToBeDeleted();
         this.__activeSourceId.aboutToBeDeleted();
         this.__sourceManagementView.aboutToBeDeleted();
+        this.__playbackExperienceOpen.aboutToBeDeleted();
         this.__sourceBrowserEntries.aboutToBeDeleted();
         this.__sourceBrowserName.aboutToBeDeleted();
         this.__sourceBrowserStorageType.aboutToBeDeleted();
@@ -234,6 +280,10 @@ class Index extends ViewPU {
         this.__playback.aboutToBeDeleted();
         this.__keyword.aboutToBeDeleted();
         this.__subtitleResults.aboutToBeDeleted();
+        this.__activeSubtitleText.aboutToBeDeleted();
+        this.__subtitleCues.aboutToBeDeleted();
+        this.__lyricLines.aboutToBeDeleted();
+        this.__currentLyricIndex.aboutToBeDeleted();
         this.__statusMessage.aboutToBeDeleted();
         SubscriberManager.Get().delete(this.id__());
         this.aboutToBeDeletedInternal();
@@ -300,6 +350,13 @@ class Index extends ViewPU {
     }
     set sourceManagementView(newValue: 'overview' | 'aliyun-auth') {
         this.__sourceManagementView.set(newValue);
+    }
+    private __playbackExperienceOpen: ObservedPropertySimplePU<boolean>;
+    get playbackExperienceOpen() {
+        return this.__playbackExperienceOpen.get();
+    }
+    set playbackExperienceOpen(newValue: boolean) {
+        this.__playbackExperienceOpen.set(newValue);
     }
     private __sourceBrowserEntries: ObservedPropertyObjectPU<SourceBrowserEntry[]>;
     get sourceBrowserEntries() {
@@ -406,6 +463,34 @@ class Index extends ViewPU {
     set subtitleResults(newValue: string) {
         this.__subtitleResults.set(newValue);
     }
+    private __activeSubtitleText: ObservedPropertySimplePU<string>;
+    get activeSubtitleText() {
+        return this.__activeSubtitleText.get();
+    }
+    set activeSubtitleText(newValue: string) {
+        this.__activeSubtitleText.set(newValue);
+    }
+    private __subtitleCues: ObservedPropertyObjectPU<Array<SubtitleCue>>;
+    get subtitleCues() {
+        return this.__subtitleCues.get();
+    }
+    set subtitleCues(newValue: Array<SubtitleCue>) {
+        this.__subtitleCues.set(newValue);
+    }
+    private __lyricLines: ObservedPropertyObjectPU<Array<LyricLine>>;
+    get lyricLines() {
+        return this.__lyricLines.get();
+    }
+    set lyricLines(newValue: Array<LyricLine>) {
+        this.__lyricLines.set(newValue);
+    }
+    private __currentLyricIndex: ObservedPropertySimplePU<number>;
+    get currentLyricIndex() {
+        return this.__currentLyricIndex.get();
+    }
+    set currentLyricIndex(newValue: number) {
+        this.__currentLyricIndex.set(newValue);
+    }
     private __statusMessage: ObservedPropertySimplePU<string>;
     get statusMessage() {
         return this.__statusMessage.get();
@@ -416,11 +501,15 @@ class Index extends ViewPU {
     private horizontalScroller: Scroller;
     private aliyunPollingTimer: number;
     private aliyunPollingInFlight: boolean;
+    private playbackRefreshTimer: number;
+    private videoSurfaceController: XComponentController;
+    private videoSurfaceId: string;
     aboutToAppear(): void {
         this.refreshSnapshot();
     }
     aboutToDisappear(): void {
         this.stopAliyunPolling();
+        this.stopPlaybackRefresh();
     }
     private async refreshSnapshot(): Promise<void> {
         this.applySnapshot(await repository.bootstrap());
@@ -436,6 +525,95 @@ class Index extends ViewPU {
         this.aliyunQrSession = snapshot.aliyunQrSession;
         this.playback = snapshot.playback;
         this.applyThemeMode();
+        this.updateTimedText();
+    }
+    private updateTimedText(): void {
+        const currentSecond: number = this.playback.currentTime;
+        let subtitleText: string = '';
+        let subtitleIndex: number = 0;
+        while (subtitleIndex < this.subtitleCues.length) {
+            const cue: SubtitleCue = this.subtitleCues[subtitleIndex];
+            if (currentSecond >= cue.startTime && currentSecond <= cue.endTime) {
+                subtitleText = cue.text;
+                break;
+            }
+            subtitleIndex += 1;
+        }
+        this.activeSubtitleText = subtitleText;
+        let lyricIndex: number = -1;
+        let lineIndex: number = 0;
+        while (lineIndex < this.lyricLines.length) {
+            if (currentSecond >= this.lyricLines[lineIndex].time) {
+                lyricIndex = lineIndex;
+            }
+            else {
+                break;
+            }
+            lineIndex += 1;
+        }
+        this.currentLyricIndex = lyricIndex;
+    }
+    private parseLrc(content: string): Array<LyricLine> {
+        const result: Array<LyricLine> = [];
+        const lines: Array<string> = content.split('\n');
+        let index: number = 0;
+        while (index < lines.length) {
+            const line: string = lines[index];
+            const matches: Array<RegExpMatchArray> = Array.from(line.matchAll(/\[(\d{2,}):(\d{2})(?:\.(\d{2,3}))?\]/g));
+            const text: string = line.replace(/\[(\d{2,}):(\d{2})(?:\.(\d{2,3}))?\]/g, '').trim();
+            if (matches.length > 0 && text.length > 0) {
+                let matchIndex: number = 0;
+                while (matchIndex < matches.length) {
+                    const match: RegExpMatchArray = matches[matchIndex];
+                    const min: number = parseInt(match[1], 10);
+                    const sec: number = parseInt(match[2], 10);
+                    const rawMs: string = match[3] === undefined ? '0' : match[3];
+                    const divisor: number = rawMs.length === 3 ? 1000 : 100;
+                    result.push({
+                        time: min * 60 + sec + parseInt(rawMs, 10) / divisor,
+                        text: text
+                    });
+                    matchIndex += 1;
+                }
+            }
+            index += 1;
+        }
+        result.sort((left: LyricLine, right: LyricLine) => left.time - right.time);
+        return result;
+    }
+    private async loadPlaybackTextData(item: MediaItem): Promise<void> {
+        this.subtitleCues = [];
+        this.activeSubtitleText = '';
+        this.lyricLines = [];
+        this.currentLyricIndex = -1;
+        if (item.type === 'music') {
+            const lyricContent: string = await repository.loadPlaybackLyrics(item);
+            if (lyricContent.length > 0) {
+                this.lyricLines = this.parseLrc(lyricContent);
+            }
+        }
+        else {
+            this.subtitleCues = await repository.loadPlaybackSubtitles(item);
+            this.subtitleResults = this.subtitleCues.length > 0 ? '已加载字幕' : '';
+        }
+        this.updateTimedText();
+    }
+    private schedulePlaybackRefresh(): void {
+        this.stopPlaybackRefresh();
+        this.playbackRefreshTimer = setTimeout(async () => {
+            if (!this.hasActivePlayback() && this.playback.status !== 'loading') {
+                this.stopPlaybackRefresh();
+                return;
+            }
+            this.applySnapshot(await repository.refreshPlayback());
+            this.schedulePlaybackRefresh();
+        }, 500);
+    }
+    private stopPlaybackRefresh(): void {
+        if (this.playbackRefreshTimer >= 0) {
+            clearTimeout(this.playbackRefreshTimer);
+            this.playbackRefreshTimer = -1;
+        }
     }
     private applyThemeMode(): void {
         const hostContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
@@ -575,6 +753,125 @@ class Index extends ViewPU {
             index += 1;
         }
         return filtered;
+    }
+    private musicItemsByFormat(format: string): MediaItem[] {
+        const target: string = format.toLowerCase();
+        const filtered: MediaItem[] = [];
+        let index: number = 0;
+        while (index < this.library.length) {
+            const item: MediaItem = this.library[index];
+            if (item.type === 'music' && (item.fileExt ?? '').toLowerCase() === target) {
+                filtered.push(item);
+            }
+            index += 1;
+        }
+        return filtered;
+    }
+    private musicItems(): MediaItem[] {
+        return this.filterByType('music');
+    }
+    private hasActivePlayback(): boolean {
+        return this.playback.status !== 'idle' ||
+            this.playback.currentTime > 0 ||
+            this.playback.duration > 0 ||
+            (this.playback.mediaId !== undefined && this.playback.mediaId.length > 0);
+    }
+    private currentPlaybackItem(): MediaItem | undefined {
+        if (this.playback.mediaId !== undefined && this.playback.mediaId.length > 0) {
+            let index: number = 0;
+            while (index < this.library.length) {
+                if (this.library[index].id === this.playback.mediaId) {
+                    return this.library[index];
+                }
+                index += 1;
+            }
+        }
+        if (this.playback.cloudFileId !== undefined && this.playback.cloudFileId.length > 0) {
+            let index: number = 0;
+            while (index < this.library.length) {
+                if (this.library[index].cloudFileId === this.playback.cloudFileId) {
+                    return this.library[index];
+                }
+                index += 1;
+            }
+        }
+        let index: number = 0;
+        while (index < this.library.length) {
+            if (this.library[index].title === this.playback.title) {
+                return this.library[index];
+            }
+            index += 1;
+        }
+        return undefined;
+    }
+    private isMusicPlayback(): boolean {
+        const item: MediaItem | undefined = this.currentPlaybackItem();
+        return item !== undefined && item.type === 'music';
+    }
+    private formatPlaybackTime(seconds: number): string {
+        const safeSeconds: number = seconds < 0 ? 0 : Math.floor(seconds);
+        const hours: number = Math.floor(safeSeconds / 3600);
+        const minutes: number = Math.floor((safeSeconds % 3600) / 60);
+        const remain: number = safeSeconds % 60;
+        if (hours > 0) {
+            return hours.toString() + ':' + minutes.toString().padStart(2, '0') + ':' + remain.toString().padStart(2, '0');
+        }
+        return minutes.toString() + ':' + remain.toString().padStart(2, '0');
+    }
+    private playbackTitle(): string {
+        return this.playback.title.length > 0 ? this.playback.title : 'Player';
+    }
+    private playbackSubtitle(): string {
+        const item: MediaItem | undefined = this.currentPlaybackItem();
+        if (item !== undefined) {
+            if (item.type === 'music') {
+                return (item.fileExt === undefined ? 'MUSIC' : item.fileExt.toUpperCase()) + ' | ' + item.sourceName;
+            }
+            const yearText: string = item.year === undefined ? '--' : item.year.toString();
+            return yearText + ' | ' + item.sourceName;
+        }
+        return this.playback.sourceLabel;
+    }
+    private playbackStageLabel(): string {
+        const item: MediaItem | undefined = this.currentPlaybackItem();
+        if (item === undefined) {
+            return 'PLAYER';
+        }
+        if (item.type === 'music') {
+            return 'MUSIC';
+        }
+        if (item.type === 'tvshow') {
+            return 'TV';
+        }
+        return 'VIDEO';
+    }
+    private musicPlaybackIndex(): number {
+        const item: MediaItem | undefined = this.currentPlaybackItem();
+        if (item === undefined) {
+            return -1;
+        }
+        const tracks: MediaItem[] = this.musicItems();
+        let index: number = 0;
+        while (index < tracks.length) {
+            if (tracks[index].id === item.id) {
+                return index;
+            }
+            index += 1;
+        }
+        return -1;
+    }
+    private canPlayPreviousInExperience(): boolean {
+        if (this.isMusicPlayback()) {
+            return this.musicPlaybackIndex() > 0;
+        }
+        return this.playback.playlistIndex > 0;
+    }
+    private canPlayNextInExperience(): boolean {
+        if (this.isMusicPlayback()) {
+            const index: number = this.musicPlaybackIndex();
+            return index >= 0 && index < this.musicItems().length - 1;
+        }
+        return this.playback.playlistIndex >= 0 && this.playback.playlistIndex < this.playback.playlist.length - 1;
     }
     private setTheme(theme: 'system' | 'light' | 'dark'): void {
         this.settings.theme = theme;
@@ -747,8 +1044,43 @@ class Index extends ViewPU {
         return this.sources[0];
     }
     private async openMedia(item: MediaItem): Promise<void> {
+        this.playbackExperienceOpen = true;
         this.applySnapshot(await repository.openMedia(item));
+        await this.loadPlaybackTextData(item);
+        this.schedulePlaybackRefresh();
         this.statusMessage = '已为 ' + item.title + ' 打开播放会话。';
+    }
+    private closePlaybackExperience(): void {
+        this.playbackExperienceOpen = false;
+        this.stopPlaybackRefresh();
+    }
+    private async attachPlaybackSurface(): Promise<void> {
+        if (this.videoSurfaceId.length === 0) {
+            return;
+        }
+        this.applySnapshot(await repository.attachPlaybackSurface(this.videoSurfaceId));
+        this.schedulePlaybackRefresh();
+    }
+    private async playPreviousInExperience(): Promise<void> {
+        if (this.isMusicPlayback()) {
+            const index: number = this.musicPlaybackIndex();
+            if (index > 0) {
+                await this.openMedia(this.musicItems()[index - 1]);
+            }
+            return;
+        }
+        await this.playPreviousCloudItem();
+    }
+    private async playNextInExperience(): Promise<void> {
+        if (this.isMusicPlayback()) {
+            const index: number = this.musicPlaybackIndex();
+            const tracks: MediaItem[] = this.musicItems();
+            if (index >= 0 && index < tracks.length - 1) {
+                await this.openMedia(tracks[index + 1]);
+            }
+            return;
+        }
+        await this.playNextCloudItem();
     }
     private async requestAliyunQrCode(): Promise<void> {
         this.stopAliyunPolling();
@@ -823,24 +1155,31 @@ class Index extends ViewPU {
     }
     private async playCurrent(): Promise<void> {
         this.applySnapshot(await repository.playCurrentMedia());
+        this.schedulePlaybackRefresh();
     }
     private async pauseCurrent(): Promise<void> {
         this.applySnapshot(await repository.pauseCurrentMedia());
     }
     private async stopCurrent(): Promise<void> {
         this.applySnapshot(await repository.stopCurrentMedia());
+        this.playbackExperienceOpen = false;
+        this.stopPlaybackRefresh();
+        this.activeSubtitleText = '';
     }
     private async seekCurrent(progress: number): Promise<void> {
         this.applySnapshot(await repository.seekCurrentMedia(progress));
     }
     private async playPreviousCloudItem(): Promise<void> {
         this.applySnapshot(await repository.playPreviousCloudItem());
+        this.schedulePlaybackRefresh();
     }
     private async playNextCloudItem(): Promise<void> {
         this.applySnapshot(await repository.playNextCloudItem());
+        this.schedulePlaybackRefresh();
     }
     private async selectPlaybackQuality(qualityId: string): Promise<void> {
         this.applySnapshot(await repository.selectPlaybackQuality(qualityId));
+        this.schedulePlaybackRefresh();
     }
     private async searchSubtitles(item: MediaItem): Promise<void> {
         this.statusMessage = '正在搜索字幕：' + item.title;
@@ -873,6 +1212,24 @@ class Index extends ViewPU {
         }
         this.statusMessage = '字幕搜索完成。';
     }
+    private mediaItemFromSourceEntry(entry: SourceBrowserEntry): MediaItem {
+        const parts: Array<string> = entry.name.split('.');
+        return {
+            id: entry.mediaId === undefined || entry.mediaId.length === 0 ? entry.id : entry.mediaId,
+            title: parts.length > 1 ? entry.name.substring(0, entry.name.length - parts[parts.length - 1].length - 1) : entry.name,
+            type: entry.type === 'audio' ? 'music' : 'movie',
+            poster: '',
+            genres: [],
+            dateAdded: entry.updatedAt,
+            filePath: entry.filePath,
+            source: entry.storageType,
+            sourceId: entry.sourceId,
+            sourceName: this.sourceBrowserName,
+            cloudFileId: entry.cloudFileId,
+            seasons: [],
+            fileExt: parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
+        };
+    }
     initialRender() {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             Row.create();
@@ -887,22 +1244,58 @@ class Index extends ViewPU {
             Column.height('100%');
             Column.backgroundColor(this.contentBackground());
         }, Column);
-        this.TopBar.bind(this)();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             If.create();
-            if (this.selectedMedia !== undefined) {
+            if (!this.playbackExperienceOpen) {
                 this.ifElseBranchUpdateFunction(0, () => {
-                    this.DetailPanel.bind(this)(ObservedObject.GetRawObject(this.selectedMedia));
+                    this.TopBar.bind(this)();
                 });
             }
             else {
                 this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.layoutWeight(1);
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.playbackExperienceOpen && this.hasActivePlayback()) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.PlaybackExperiencePanel.bind(this)();
+                });
+            }
+            else if (this.selectedMedia !== undefined) {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.DetailPanel.bind(this)(ObservedObject.GetRawObject(this.selectedMedia));
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(2, () => {
                     this.SectionPanel.bind(this)();
                 });
             }
         }, If);
         If.pop();
-        this.PlayerDock.bind(this)();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (!this.playbackExperienceOpen) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.PlayerDock.bind(this)();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.CompactPlaybackStatus.bind(this)();
+                });
+            }
+        }, If);
+        If.pop();
         this.BottomStatus.bind(this)();
         Column.pop();
         Row.pop();
@@ -1069,18 +1462,23 @@ class Index extends ViewPU {
                     this.HomePanel.bind(this)();
                 });
             }
-            else if (this.currentSection === 'sources') {
+            else if (this.currentSection === 'music') {
                 this.ifElseBranchUpdateFunction(1, () => {
+                    this.MusicPanel.bind(this)();
+                });
+            }
+            else if (this.currentSection === 'sources') {
+                this.ifElseBranchUpdateFunction(2, () => {
                     this.SourcesPanel.bind(this)();
                 });
             }
             else if (this.currentSection === 'settings') {
-                this.ifElseBranchUpdateFunction(2, () => {
+                this.ifElseBranchUpdateFunction(3, () => {
                     this.SettingsPanel.bind(this)();
                 });
             }
             else {
-                this.ifElseBranchUpdateFunction(3, () => {
+                this.ifElseBranchUpdateFunction(4, () => {
                     this.LibraryPanel.bind(this)(this.visibleMedia(), '媒体库');
                 });
             }
@@ -1160,6 +1558,22 @@ class Index extends ViewPU {
             Scroll.scrollBar(BarState.Off);
         }, Scroll);
         this.LibraryGrid.bind(this)(items, title);
+        Scroll.pop();
+    }
+    private MusicPanel(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 18 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.width('100%');
+        }, Column);
+        this.LibraryGrid.bind(this)(this.musicItemsByFormat('flac'), 'FLAC');
+        this.LibraryGrid.bind(this)(this.musicItemsByFormat('wav'), 'WAV');
+        this.LibraryGrid.bind(this)(this.musicItemsByFormat('mp3'), 'MP3');
+        Column.pop();
         Scroll.pop();
     }
     private LibraryGrid(items: MediaItem[], title: string, parent = null) {
@@ -1616,6 +2030,715 @@ class Index extends ViewPU {
             }
         }, If);
         If.pop();
+        Column.pop();
+        Scroll.pop();
+    }
+    private PlaybackExperiencePanel(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.isMusicPlayback()) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.MusicPlaybackExperience.bind(this)();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.VideoPlaybackExperience.bind(this)();
+                });
+            }
+        }, If);
+        If.pop();
+    }
+    private VideoPlaybackExperience(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.backgroundColor('#07111F');
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 18 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.padding(28);
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 12 });
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Back');
+            Button.backgroundColor(this.cardBackground());
+            Button.fontColor(this.textPrimary());
+            Button.borderRadius(16);
+            Button.onClick(() => {
+                this.closePlaybackExperience();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 4 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.layoutWeight(1);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playbackTitle());
+            Text.fontSize(24);
+            Text.fontWeight(FontWeight.Bold);
+            Text.fontColor('#F8FAFC');
+            Text.maxLines(1);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playbackSubtitle());
+            Text.fontSize(12);
+            Text.fontColor('#AFC3E6');
+            Text.maxLines(1);
+        }, Text);
+        Text.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playback.status.toUpperCase());
+            Text.fontSize(11);
+            Text.fontColor('#D6E4FF');
+            Text.padding({ left: 10, right: 10, top: 6, bottom: 6 });
+            Text.backgroundColor('#19376D');
+            Text.borderRadius(999);
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Stack.create({ alignContent: Alignment.Bottom });
+            Stack.height(360);
+            Stack.width('100%');
+            Stack.linearGradient({
+                angle: 135,
+                colors: [['#091423', 0], ['#102B52', 0.55], ['#163D7A', 1]]
+            });
+            Stack.borderRadius(32);
+        }, Stack);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            XComponent.create({
+                id: 'octov-video-surface',
+                type: XComponentType.SURFACE,
+                controller: this.videoSurfaceController
+            }, "com.octo.octov/entry");
+            XComponent.width('100%');
+            XComponent.height('100%');
+            XComponent.backgroundColor('#020817');
+            XComponent.borderRadius(32);
+            XComponent.onLoad(() => {
+                this.videoSurfaceId = this.videoSurfaceController.getXComponentSurfaceId();
+                this.attachPlaybackSurface();
+            });
+        }, XComponent);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.playback.status === 'idle' || this.playback.status === 'loading') {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create({ space: 12 });
+                        Column.alignItems(HorizontalAlign.Center);
+                        Column.width('100%');
+                        Column.height('100%');
+                    }, Column);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.playbackStageLabel());
+                        Text.fontSize(26);
+                        Text.fontWeight(FontWeight.Bold);
+                        Text.fontColor('#F8FAFC');
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.playback.message === undefined ? 'Player ready' : this.playback.message);
+                        Text.fontSize(13);
+                        Text.fontColor('#AFC3E6');
+                        Text.textAlign(TextAlign.Center);
+                    }, Text);
+                    Text.pop();
+                    Column.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.activeSubtitleText.length > 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create(this.activeSubtitleText);
+                        Text.fontSize(20);
+                        Text.fontWeight(FontWeight.Medium);
+                        Text.fontColor('#F8FAFC');
+                        Text.textAlign(TextAlign.Center);
+                        Text.padding({ left: 18, right: 18, top: 10, bottom: 10 });
+                        Text.backgroundColor('#66020B17');
+                        Text.borderRadius(16);
+                        Text.margin({ left: 24, right: 24, bottom: 24 });
+                    }, Text);
+                    Text.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        Stack.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 14 });
+            Column.padding(22);
+            Column.width('100%');
+            Column.backgroundColor(this.cardBackgroundStrong());
+            Column.borderRadius(28);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.formatPlaybackTime(this.playback.currentTime));
+            Text.fontSize(12);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playback.progress.toString() + '%');
+            Text.fontSize(12);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(' / ');
+            Text.fontSize(12);
+            Text.fontColor(this.textMuted());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.formatPlaybackTime(this.playback.duration));
+            Text.fontSize(12);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Slider.create({
+                value: this.playback.progress,
+                min: 0,
+                max: 100,
+                step: 1
+            });
+            Slider.blockColor('#2F6BFF');
+            Slider.trackColor('#243B55');
+            Slider.selectedColor('#60A5FA');
+            Slider.onChange((value: number) => {
+                this.seekCurrent(value);
+            });
+        }, Slider);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 12 });
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Prev');
+            Button.backgroundColor(this.canPlayPreviousInExperience() ? this.cardBackground() : this.cardBackgroundStrong());
+            Button.fontColor(this.textPrimary());
+            Button.borderRadius(14);
+            Button.enabled(this.canPlayPreviousInExperience());
+            Button.onClick(() => {
+                this.playPreviousInExperience();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel(this.playback.status === 'playing' ? 'Pause' : 'Play');
+            Button.backgroundColor(this.accentBackground());
+            Button.fontColor('#FFFFFF');
+            Button.borderRadius(14);
+            Button.onClick(() => {
+                if (this.playback.status === 'playing') {
+                    this.pauseCurrent();
+                }
+                else {
+                    this.playCurrent();
+                }
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Stop');
+            Button.backgroundColor(this.dangerBackground());
+            Button.fontColor('#FFFFFF');
+            Button.borderRadius(14);
+            Button.onClick(() => {
+                this.stopCurrent();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Next');
+            Button.backgroundColor(this.canPlayNextInExperience() ? this.cardBackground() : this.cardBackgroundStrong());
+            Button.fontColor(this.textPrimary());
+            Button.borderRadius(14);
+            Button.enabled(this.canPlayNextInExperience());
+            Button.onClick(() => {
+                this.playNextInExperience();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.currentPlaybackItem() !== undefined) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Button.createWithLabel('Subtitles');
+                        Button.backgroundColor(this.cardBackground());
+                        Button.fontColor(this.textPrimary());
+                        Button.borderRadius(14);
+                        Button.onClick(() => {
+                            this.searchSubtitles(this.currentPlaybackItem() as MediaItem);
+                        });
+                    }, Button);
+                    Button.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        Row.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.playback.availableQualities.length > 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Column.create({ space: 10 });
+                        Column.alignItems(HorizontalAlign.Start);
+                        Column.padding(20);
+                        Column.width('100%');
+                        Column.backgroundColor(this.cardBackground());
+                        Column.borderRadius(24);
+                    }, Column);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('Quality');
+                        Text.fontSize(13);
+                        Text.fontWeight(FontWeight.Medium);
+                        Text.fontColor(this.textSecondary());
+                    }, Text);
+                    Text.pop();
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Row.create({ space: 8 });
+                    }, Row);
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        ForEach.create();
+                        const forEachItemGenFunction = _item => {
+                            const item = _item;
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Button.createWithLabel(item.label);
+                                Button.fontSize(11);
+                                Button.backgroundColor(this.playback.activeQualityId === item.id ? this.accentBackground() : this.cardBackground());
+                                Button.fontColor(this.playback.activeQualityId === item.id ? '#FFFFFF' : this.textPrimary());
+                                Button.borderRadius(12);
+                                Button.onClick(() => {
+                                    this.selectPlaybackQuality(item.id);
+                                });
+                            }, Button);
+                            Button.pop();
+                        };
+                        this.forEachUpdateFunction(elmtId, this.playback.availableQualities, forEachItemGenFunction);
+                    }, ForEach);
+                    ForEach.pop();
+                    Row.pop();
+                    Column.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.subtitleResults.length > 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.InfoBanner.bind(this)('Subtitles', this.subtitleResults);
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                });
+            }
+        }, If);
+        If.pop();
+        Column.pop();
+        Scroll.pop();
+    }
+    private MusicPlaybackExperience(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.scrollBar(BarState.Off);
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 22 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.padding(28);
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 12 });
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Back');
+            Button.backgroundColor(this.cardBackground());
+            Button.fontColor(this.textPrimary());
+            Button.borderRadius(16);
+            Button.onClick(() => {
+                this.closePlaybackExperience();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('Music Player');
+            Text.fontSize(16);
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 26 });
+            Row.width('100%');
+            Row.padding(28);
+            Row.linearGradient({
+                angle: 135,
+                colors: [['#EEF5FF', 0], ['#DDEBFF', 0.48], ['#F7FBFF', 1]]
+            });
+            Row.borderRadius(32);
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Stack.create({ alignContent: Alignment.Center });
+            Stack.width(300);
+            Stack.height(300);
+        }, Stack);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width(300);
+            Column.height(300);
+            Column.backgroundColor('#1C3E6E');
+            Column.borderRadius(999);
+        }, Column);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create();
+            Column.width(96);
+            Column.height(96);
+            Column.backgroundColor('#0B1729');
+            Column.borderRadius(999);
+        }, Column);
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('MUSIC');
+            Text.fontSize(22);
+            Text.fontWeight(FontWeight.Bold);
+            Text.fontColor('#F8FAFC');
+        }, Text);
+        Text.pop();
+        Stack.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 16 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.layoutWeight(1);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playbackTitle());
+            Text.fontSize(34);
+            Text.fontWeight(FontWeight.Bold);
+            Text.fontColor(this.textPrimary());
+            Text.maxLines(2);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playbackSubtitle());
+            Text.fontSize(14);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playback.message === undefined ? 'Ready to play' : this.playback.message);
+            Text.fontSize(13);
+            Text.fontColor(this.textMuted());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 8 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.padding(16);
+            Column.width('100%');
+            Column.backgroundColor(this.cardBackground());
+            Column.borderRadius(22);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('Lyrics');
+            Text.fontSize(15);
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.textPrimary());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Scroll.create();
+            Scroll.height(180);
+            Scroll.width('100%');
+        }, Scroll);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 8 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.lyricLines.length === 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('No lyrics loaded yet.');
+                        Text.fontSize(13);
+                        Text.fontColor(this.textSecondary());
+                    }, Text);
+                    Text.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        ForEach.create();
+                        const forEachItemGenFunction = (_item, index: number) => {
+                            const line = _item;
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create(line.text);
+                                Text.fontSize(this.currentLyricIndex === index ? 16 : 13);
+                                Text.fontWeight(this.currentLyricIndex === index ? FontWeight.Bold : FontWeight.Regular);
+                                Text.fontColor(this.currentLyricIndex === index ? '#2F6BFF' : this.textSecondary());
+                                Text.textAlign(TextAlign.Start);
+                                Text.width('100%');
+                            }, Text);
+                            Text.pop();
+                        };
+                        this.forEachUpdateFunction(elmtId, this.lyricLines.slice(0, 24), forEachItemGenFunction, undefined, true, false);
+                    }, ForEach);
+                    ForEach.pop();
+                });
+            }
+        }, If);
+        If.pop();
+        Column.pop();
+        Scroll.pop();
+        Column.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 10 });
+            Column.alignItems(HorizontalAlign.Start);
+            Column.width('100%');
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create('Queue');
+            Text.fontSize(15);
+            Text.fontWeight(FontWeight.Medium);
+            Text.fontColor(this.textPrimary());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            If.create();
+            if (this.musicItems().length === 0) {
+                this.ifElseBranchUpdateFunction(0, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        Text.create('No music tracks loaded.');
+                        Text.fontSize(13);
+                        Text.fontColor(this.textSecondary());
+                    }, Text);
+                    Text.pop();
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(1, () => {
+                    this.observeComponentCreation2((elmtId, isInitialRender) => {
+                        ForEach.create();
+                        const forEachItemGenFunction = _item => {
+                            const item = _item;
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Row.create();
+                                Row.width('100%');
+                                Row.padding(12);
+                                Row.backgroundColor(this.cardBackground());
+                                Row.borderRadius(18);
+                            }, Row);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Column.create({ space: 4 });
+                                Column.alignItems(HorizontalAlign.Start);
+                                Column.layoutWeight(1);
+                            }, Column);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create(item.title);
+                                Text.fontSize(13);
+                                Text.fontWeight(FontWeight.Medium);
+                                Text.fontColor(this.currentPlaybackItem() !== undefined && this.currentPlaybackItem()!.id === item.id ? '#2F6BFF' : this.textPrimary());
+                                Text.maxLines(1);
+                            }, Text);
+                            Text.pop();
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create(item.fileExt === undefined ? 'MUSIC' : item.fileExt.toUpperCase());
+                                Text.fontSize(11);
+                                Text.fontColor(this.textSecondary());
+                            }, Text);
+                            Text.pop();
+                            Column.pop();
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Button.createWithLabel('Play');
+                                Button.fontSize(11);
+                                Button.backgroundColor(this.cardBackground());
+                                Button.fontColor(this.textPrimary());
+                                Button.borderRadius(12);
+                                Button.onClick(() => {
+                                    this.openMedia(item);
+                                });
+                            }, Button);
+                            Button.pop();
+                            Row.pop();
+                        };
+                        this.forEachUpdateFunction(elmtId, this.musicItems().slice(0, 6), forEachItemGenFunction);
+                    }, ForEach);
+                    ForEach.pop();
+                });
+            }
+        }, If);
+        If.pop();
+        Column.pop();
+        Column.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Column.create({ space: 12 });
+            Column.padding(22);
+            Column.width('100%');
+            Column.backgroundColor(this.cardBackgroundStrong());
+            Column.borderRadius(28);
+        }, Column);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.formatPlaybackTime(this.playback.currentTime));
+            Text.fontSize(12);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.formatPlaybackTime(this.playback.duration));
+            Text.fontSize(12);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        Row.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Slider.create({
+                value: this.playback.progress,
+                min: 0,
+                max: 100,
+                step: 1
+            });
+            Slider.blockColor('#2F6BFF');
+            Slider.trackColor('#CBD5E1');
+            Slider.selectedColor('#2F6BFF');
+            Slider.onChange((value: number) => {
+                this.seekCurrent(value);
+            });
+        }, Slider);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create({ space: 12 });
+            Row.width('100%');
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Prev');
+            Button.backgroundColor(this.canPlayPreviousInExperience() ? this.cardBackground() : this.cardBackgroundStrong());
+            Button.fontColor(this.textPrimary());
+            Button.borderRadius(14);
+            Button.enabled(this.canPlayPreviousInExperience());
+            Button.onClick(() => {
+                this.playPreviousInExperience();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel(this.playback.status === 'playing' ? 'Pause' : 'Play');
+            Button.backgroundColor(this.accentBackground());
+            Button.fontColor('#FFFFFF');
+            Button.borderRadius(18);
+            Button.padding({ left: 18, right: 18 });
+            Button.onClick(() => {
+                if (this.playback.status === 'playing') {
+                    this.pauseCurrent();
+                }
+                else {
+                    this.playCurrent();
+                }
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Next');
+            Button.backgroundColor(this.canPlayNextInExperience() ? this.cardBackground() : this.cardBackgroundStrong());
+            Button.fontColor(this.textPrimary());
+            Button.borderRadius(14);
+            Button.enabled(this.canPlayNextInExperience());
+            Button.onClick(() => {
+                this.playNextInExperience();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Stop');
+            Button.backgroundColor(this.dangerBackground());
+            Button.fontColor('#FFFFFF');
+            Button.borderRadius(14);
+            Button.onClick(() => {
+                this.stopCurrent();
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playback.progress.toString() + '%');
+            Text.fontSize(12);
+            Text.fontColor(this.textSecondary());
+        }, Text);
+        Text.pop();
+        Row.pop();
+        Column.pop();
         Column.pop();
         Scroll.pop();
     }
@@ -2528,7 +3651,10 @@ class Index extends ViewPU {
             }
         }
         else if (entry.cloudFileId !== undefined && entry.cloudFileId.length > 0) {
-            this.applySnapshot(await repository.openCloudFile(entry.cloudFileId, entry.name, this.sourceBrowserName, this.sourceBrowserCurrentFolderId, this.activeSourceId));
+            this.applySnapshot(await repository.openCloudFile(entry.cloudFileId, entry.name, this.sourceBrowserName, this.sourceBrowserCurrentFolderId, this.activeSourceId, entry.type === 'audio' ? 'audio' : 'video'));
+            this.playbackExperienceOpen = true;
+            await this.loadPlaybackTextData(this.mediaItemFromSourceEntry(entry));
+            this.schedulePlaybackRefresh();
             this.statusMessage = '已打开云盘文件：' + entry.name;
         }
     }
@@ -2751,6 +3877,32 @@ class Index extends ViewPU {
         Row.pop();
         this.CloudPlaybackMeta.bind(this)();
         Column.pop();
+    }
+    private CompactPlaybackStatus(parent = null) {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Row.create();
+            Row.width('100%');
+            Row.padding({ left: 28, right: 28, top: 10, bottom: 10 });
+            Row.backgroundColor(this.contentBackground());
+        }, Row);
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playbackTitle());
+            Text.fontSize(12);
+            Text.fontColor(this.textSecondary());
+            Text.maxLines(1);
+        }, Text);
+        Text.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Blank.create();
+        }, Blank);
+        Blank.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Text.create(this.playback.status + ' | ' + this.playback.progress.toString() + '%');
+            Text.fontSize(12);
+            Text.fontColor(this.textMuted());
+        }, Text);
+        Text.pop();
+        Row.pop();
     }
     private CloudPlaybackMeta(parent = null) {
         this.observeComponentCreation2((elmtId, isInitialRender) => {

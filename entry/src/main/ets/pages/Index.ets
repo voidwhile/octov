@@ -13,6 +13,8 @@ import {
   PlaybackSession,
   SeasonItem,
   SectionId,
+  SubtitleCue,
+  LyricLine,
   SourceBrowserEntry,
   SourceBrowserFilter,
   SourceBrowserSnapshot,
@@ -46,6 +48,7 @@ struct Index {
   @State sources: FileSourceItem[] = []
   @State activeSourceId: string = ''
   @State sourceManagementView: 'overview' | 'aliyun-auth' = 'overview'
+  @State playbackExperienceOpen: boolean = false
   @State sourceBrowserEntries: SourceBrowserEntry[] = []
   @State sourceBrowserName: string = ''
   @State sourceBrowserStorageType: 'local' | 'aliyundrive' = 'local'
@@ -73,10 +76,17 @@ struct Index {
   }
   @State keyword: string = ''
   @State subtitleResults: string = ''
+  @State activeSubtitleText: string = ''
+  @State subtitleCues: Array<SubtitleCue> = []
+  @State lyricLines: Array<LyricLine> = []
+  @State currentLyricIndex: number = -1
   @State statusMessage: string = '准备就绪'
   private horizontalScroller: Scroller = new Scroller()
   private aliyunPollingTimer: number = -1
   private aliyunPollingInFlight: boolean = false
+  private playbackRefreshTimer: number = -1
+  private videoSurfaceController: XComponentController = new XComponentController()
+  private videoSurfaceId: string = ''
 
   aboutToAppear(): void {
     this.refreshSnapshot()
@@ -84,6 +94,7 @@ struct Index {
 
   aboutToDisappear(): void {
     this.stopAliyunPolling()
+    this.stopPlaybackRefresh()
   }
 
   private async refreshSnapshot(): Promise<void> {
@@ -101,6 +112,99 @@ struct Index {
     this.aliyunQrSession = snapshot.aliyunQrSession
     this.playback = snapshot.playback
     this.applyThemeMode()
+    this.updateTimedText()
+  }
+
+  private updateTimedText(): void {
+    const currentSecond: number = this.playback.currentTime
+    let subtitleText: string = ''
+    let subtitleIndex: number = 0
+    while (subtitleIndex < this.subtitleCues.length) {
+      const cue: SubtitleCue = this.subtitleCues[subtitleIndex]
+      if (currentSecond >= cue.startTime && currentSecond <= cue.endTime) {
+        subtitleText = cue.text
+        break
+      }
+      subtitleIndex += 1
+    }
+    this.activeSubtitleText = subtitleText
+
+    let lyricIndex: number = -1
+    let lineIndex: number = 0
+    while (lineIndex < this.lyricLines.length) {
+      if (currentSecond >= this.lyricLines[lineIndex].time) {
+        lyricIndex = lineIndex
+      } else {
+        break
+      }
+      lineIndex += 1
+    }
+    this.currentLyricIndex = lyricIndex
+  }
+
+  private parseLrc(content: string): Array<LyricLine> {
+    const result: Array<LyricLine> = []
+    const lines: Array<string> = content.split('\n')
+    let index: number = 0
+    while (index < lines.length) {
+      const line: string = lines[index]
+      const matches: Array<RegExpMatchArray> = Array.from(line.matchAll(/\[(\d{2,}):(\d{2})(?:\.(\d{2,3}))?\]/g))
+      const text: string = line.replace(/\[(\d{2,}):(\d{2})(?:\.(\d{2,3}))?\]/g, '').trim()
+      if (matches.length > 0 && text.length > 0) {
+        let matchIndex: number = 0
+        while (matchIndex < matches.length) {
+          const match: RegExpMatchArray = matches[matchIndex]
+          const min: number = parseInt(match[1], 10)
+          const sec: number = parseInt(match[2], 10)
+          const rawMs: string = match[3] === undefined ? '0' : match[3]
+          const divisor: number = rawMs.length === 3 ? 1000 : 100
+          result.push({
+            time: min * 60 + sec + parseInt(rawMs, 10) / divisor,
+            text: text
+          })
+          matchIndex += 1
+        }
+      }
+      index += 1
+    }
+    result.sort((left: LyricLine, right: LyricLine) => left.time - right.time)
+    return result
+  }
+
+  private async loadPlaybackTextData(item: MediaItem): Promise<void> {
+    this.subtitleCues = []
+    this.activeSubtitleText = ''
+    this.lyricLines = []
+    this.currentLyricIndex = -1
+    if (item.type === 'music') {
+      const lyricContent: string = await repository.loadPlaybackLyrics(item)
+      if (lyricContent.length > 0) {
+        this.lyricLines = this.parseLrc(lyricContent)
+      }
+    } else {
+      this.subtitleCues = await repository.loadPlaybackSubtitles(item)
+      this.subtitleResults = this.subtitleCues.length > 0 ? '已加载字幕' : ''
+    }
+    this.updateTimedText()
+  }
+
+  private schedulePlaybackRefresh(): void {
+    this.stopPlaybackRefresh()
+    this.playbackRefreshTimer = setTimeout(async () => {
+      if (!this.hasActivePlayback() && this.playback.status !== 'loading') {
+        this.stopPlaybackRefresh()
+        return
+      }
+      this.applySnapshot(await repository.refreshPlayback())
+      this.schedulePlaybackRefresh()
+    }, 500)
+  }
+
+  private stopPlaybackRefresh(): void {
+    if (this.playbackRefreshTimer >= 0) {
+      clearTimeout(this.playbackRefreshTimer)
+      this.playbackRefreshTimer = -1
+    }
   }
 
   private applyThemeMode(): void {
@@ -257,6 +361,137 @@ struct Index {
       index += 1
     }
     return filtered
+  }
+
+  private musicItemsByFormat(format: string): MediaItem[] {
+    const target: string = format.toLowerCase()
+    const filtered: MediaItem[] = []
+    let index: number = 0
+    while (index < this.library.length) {
+      const item: MediaItem = this.library[index]
+      if (item.type === 'music' && (item.fileExt ?? '').toLowerCase() === target) {
+        filtered.push(item)
+      }
+      index += 1
+    }
+    return filtered
+  }
+
+  private musicItems(): MediaItem[] {
+    return this.filterByType('music')
+  }
+
+  private hasActivePlayback(): boolean {
+    return this.playback.status !== 'idle' ||
+      this.playback.currentTime > 0 ||
+      this.playback.duration > 0 ||
+      (this.playback.mediaId !== undefined && this.playback.mediaId.length > 0)
+  }
+
+  private currentPlaybackItem(): MediaItem | undefined {
+    if (this.playback.mediaId !== undefined && this.playback.mediaId.length > 0) {
+      let index: number = 0
+      while (index < this.library.length) {
+        if (this.library[index].id === this.playback.mediaId) {
+          return this.library[index]
+        }
+        index += 1
+      }
+    }
+    if (this.playback.cloudFileId !== undefined && this.playback.cloudFileId.length > 0) {
+      let index: number = 0
+      while (index < this.library.length) {
+        if (this.library[index].cloudFileId === this.playback.cloudFileId) {
+          return this.library[index]
+        }
+        index += 1
+      }
+    }
+    let index: number = 0
+    while (index < this.library.length) {
+      if (this.library[index].title === this.playback.title) {
+        return this.library[index]
+      }
+      index += 1
+    }
+    return undefined
+  }
+
+  private isMusicPlayback(): boolean {
+    const item: MediaItem | undefined = this.currentPlaybackItem()
+    return item !== undefined && item.type === 'music'
+  }
+
+  private formatPlaybackTime(seconds: number): string {
+    const safeSeconds: number = seconds < 0 ? 0 : Math.floor(seconds)
+    const hours: number = Math.floor(safeSeconds / 3600)
+    const minutes: number = Math.floor((safeSeconds % 3600) / 60)
+    const remain: number = safeSeconds % 60
+    if (hours > 0) {
+      return hours.toString() + ':' + minutes.toString().padStart(2, '0') + ':' + remain.toString().padStart(2, '0')
+    }
+    return minutes.toString() + ':' + remain.toString().padStart(2, '0')
+  }
+
+  private playbackTitle(): string {
+    return this.playback.title.length > 0 ? this.playback.title : 'Player'
+  }
+
+  private playbackSubtitle(): string {
+    const item: MediaItem | undefined = this.currentPlaybackItem()
+    if (item !== undefined) {
+      if (item.type === 'music') {
+        return (item.fileExt === undefined ? 'MUSIC' : item.fileExt.toUpperCase()) + ' | ' + item.sourceName
+      }
+      const yearText: string = item.year === undefined ? '--' : item.year.toString()
+      return yearText + ' | ' + item.sourceName
+    }
+    return this.playback.sourceLabel
+  }
+
+  private playbackStageLabel(): string {
+    const item: MediaItem | undefined = this.currentPlaybackItem()
+    if (item === undefined) {
+      return 'PLAYER'
+    }
+    if (item.type === 'music') {
+      return 'MUSIC'
+    }
+    if (item.type === 'tvshow') {
+      return 'TV'
+    }
+    return 'VIDEO'
+  }
+
+  private musicPlaybackIndex(): number {
+    const item: MediaItem | undefined = this.currentPlaybackItem()
+    if (item === undefined) {
+      return -1
+    }
+    const tracks: MediaItem[] = this.musicItems()
+    let index: number = 0
+    while (index < tracks.length) {
+      if (tracks[index].id === item.id) {
+        return index
+      }
+      index += 1
+    }
+    return -1
+  }
+
+  private canPlayPreviousInExperience(): boolean {
+    if (this.isMusicPlayback()) {
+      return this.musicPlaybackIndex() > 0
+    }
+    return this.playback.playlistIndex > 0
+  }
+
+  private canPlayNextInExperience(): boolean {
+    if (this.isMusicPlayback()) {
+      const index: number = this.musicPlaybackIndex()
+      return index >= 0 && index < this.musicItems().length - 1
+    }
+    return this.playback.playlistIndex >= 0 && this.playback.playlistIndex < this.playback.playlist.length - 1
   }
 
   private setTheme(theme: 'system' | 'light' | 'dark'): void {
@@ -448,8 +683,47 @@ struct Index {
   }
 
   private async openMedia(item: MediaItem): Promise<void> {
+    this.playbackExperienceOpen = true
     this.applySnapshot(await repository.openMedia(item))
+    await this.loadPlaybackTextData(item)
+    this.schedulePlaybackRefresh()
     this.statusMessage = '已为 ' + item.title + ' 打开播放会话。'
+  }
+
+  private closePlaybackExperience(): void {
+    this.playbackExperienceOpen = false
+    this.stopPlaybackRefresh()
+  }
+
+  private async attachPlaybackSurface(): Promise<void> {
+    if (this.videoSurfaceId.length === 0) {
+      return
+    }
+    this.applySnapshot(await repository.attachPlaybackSurface(this.videoSurfaceId))
+    this.schedulePlaybackRefresh()
+  }
+
+  private async playPreviousInExperience(): Promise<void> {
+    if (this.isMusicPlayback()) {
+      const index: number = this.musicPlaybackIndex()
+      if (index > 0) {
+        await this.openMedia(this.musicItems()[index - 1])
+      }
+      return
+    }
+    await this.playPreviousCloudItem()
+  }
+
+  private async playNextInExperience(): Promise<void> {
+    if (this.isMusicPlayback()) {
+      const index: number = this.musicPlaybackIndex()
+      const tracks: MediaItem[] = this.musicItems()
+      if (index >= 0 && index < tracks.length - 1) {
+        await this.openMedia(tracks[index + 1])
+      }
+      return
+    }
+    await this.playNextCloudItem()
   }
 
   private async requestAliyunQrCode(): Promise<void> {
@@ -531,6 +805,7 @@ struct Index {
 
   private async playCurrent(): Promise<void> {
     this.applySnapshot(await repository.playCurrentMedia())
+    this.schedulePlaybackRefresh()
   }
 
   private async pauseCurrent(): Promise<void> {
@@ -539,6 +814,9 @@ struct Index {
 
   private async stopCurrent(): Promise<void> {
     this.applySnapshot(await repository.stopCurrentMedia())
+    this.playbackExperienceOpen = false
+    this.stopPlaybackRefresh()
+    this.activeSubtitleText = ''
   }
 
   private async seekCurrent(progress: number): Promise<void> {
@@ -547,14 +825,17 @@ struct Index {
 
   private async playPreviousCloudItem(): Promise<void> {
     this.applySnapshot(await repository.playPreviousCloudItem())
+    this.schedulePlaybackRefresh()
   }
 
   private async playNextCloudItem(): Promise<void> {
     this.applySnapshot(await repository.playNextCloudItem())
+    this.schedulePlaybackRefresh()
   }
 
   private async selectPlaybackQuality(qualityId: string): Promise<void> {
     this.applySnapshot(await repository.selectPlaybackQuality(qualityId))
+    this.schedulePlaybackRefresh()
   }
 
   private async searchSubtitles(item: MediaItem): Promise<void> {
@@ -587,17 +868,48 @@ struct Index {
     this.statusMessage = '字幕搜索完成。'
   }
 
+  private mediaItemFromSourceEntry(entry: SourceBrowserEntry): MediaItem {
+    const parts: Array<string> = entry.name.split('.')
+    return {
+      id: entry.mediaId === undefined || entry.mediaId.length === 0 ? entry.id : entry.mediaId,
+      title: parts.length > 1 ? entry.name.substring(0, entry.name.length - parts[parts.length - 1].length - 1) : entry.name,
+      type: entry.type === 'audio' ? 'music' : 'movie',
+      poster: '',
+      genres: [],
+      dateAdded: entry.updatedAt,
+      filePath: entry.filePath,
+      source: entry.storageType,
+      sourceId: entry.sourceId,
+      sourceName: this.sourceBrowserName,
+      cloudFileId: entry.cloudFileId,
+      seasons: [],
+      fileExt: parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
+    }
+  }
+
   build() {
     Row() {
       this.Sidebar()
       Column() {
-        this.TopBar()
-        if (this.selectedMedia !== undefined) {
-          this.DetailPanel(this.selectedMedia)
-        } else {
-          this.SectionPanel()
+        if (!this.playbackExperienceOpen) {
+          this.TopBar()
         }
-        this.PlayerDock()
+        Column() {
+          if (this.playbackExperienceOpen && this.hasActivePlayback()) {
+            this.PlaybackExperiencePanel()
+          } else if (this.selectedMedia !== undefined) {
+            this.DetailPanel(this.selectedMedia)
+          } else {
+            this.SectionPanel()
+          }
+        }
+        .layoutWeight(1)
+        .width('100%')
+        if (!this.playbackExperienceOpen) {
+          this.PlayerDock()
+        } else {
+          this.CompactPlaybackStatus()
+        }
         this.BottomStatus()
       }
       .layoutWeight(1)
@@ -719,6 +1031,8 @@ struct Index {
   private SectionPanel() {
     if (this.currentSection === 'home') {
       this.HomePanel()
+    } else if (this.currentSection === 'music') {
+      this.MusicPanel()
     } else if (this.currentSection === 'sources') {
       this.SourcesPanel()
     } else if (this.currentSection === 'settings') {
@@ -777,6 +1091,20 @@ struct Index {
   private LibraryPanel(items: MediaItem[], title: string) {
     Scroll() {
       this.LibraryGrid(items, title)
+    }
+    .scrollBar(BarState.Off)
+  }
+
+  @Builder
+  private MusicPanel() {
+    Scroll() {
+      Column({ space: 18 }) {
+        this.LibraryGrid(this.musicItemsByFormat('flac'), 'FLAC')
+        this.LibraryGrid(this.musicItemsByFormat('wav'), 'WAV')
+        this.LibraryGrid(this.musicItemsByFormat('mp3'), 'MP3')
+      }
+      .alignItems(HorizontalAlign.Start)
+      .width('100%')
     }
     .scrollBar(BarState.Off)
   }
@@ -1023,6 +1351,447 @@ struct Index {
           .alignItems(HorizontalAlign.Start)
           .width('100%')
         }
+      }
+      .alignItems(HorizontalAlign.Start)
+      .padding(28)
+      .width('100%')
+    }
+    .scrollBar(BarState.Off)
+  }
+
+  @Builder
+  private PlaybackExperiencePanel() {
+    if (this.isMusicPlayback()) {
+      this.MusicPlaybackExperience()
+    } else {
+      this.VideoPlaybackExperience()
+    }
+  }
+
+  @Builder
+  private VideoPlaybackExperience() {
+    Scroll() {
+      Column({ space: 18 }) {
+        Row({ space: 12 }) {
+          Button('Back')
+            .backgroundColor(this.cardBackground())
+            .fontColor(this.textPrimary())
+            .borderRadius(16)
+            .onClick(() => {
+              this.closePlaybackExperience()
+            })
+          Column({ space: 4 }) {
+            Text(this.playbackTitle())
+              .fontSize(24)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#F8FAFC')
+              .maxLines(1)
+            Text(this.playbackSubtitle())
+              .fontSize(12)
+              .fontColor('#AFC3E6')
+              .maxLines(1)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+          Text(this.playback.status.toUpperCase())
+            .fontSize(11)
+            .fontColor('#D6E4FF')
+            .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+            .backgroundColor('#19376D')
+            .borderRadius(999)
+        }
+        .width('100%')
+
+        Stack({ alignContent: Alignment.Bottom }) {
+          XComponent({
+            id: 'octov-video-surface',
+            type: XComponentType.SURFACE,
+            controller: this.videoSurfaceController
+          })
+            .width('100%')
+            .height('100%')
+            .backgroundColor('#020817')
+            .borderRadius(32)
+            .onLoad(() => {
+              this.videoSurfaceId = this.videoSurfaceController.getXComponentSurfaceId()
+              this.attachPlaybackSurface()
+            })
+
+          if (this.playback.status === 'idle' || this.playback.status === 'loading') {
+            Column({ space: 12 }) {
+              Text(this.playbackStageLabel())
+                .fontSize(26)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#F8FAFC')
+              Text(this.playback.message === undefined ? 'Player ready' : this.playback.message)
+                .fontSize(13)
+                .fontColor('#AFC3E6')
+                .textAlign(TextAlign.Center)
+            }
+            .alignItems(HorizontalAlign.Center)
+            .width('100%')
+            .height('100%')
+          }
+
+          if (this.activeSubtitleText.length > 0) {
+            Text(this.activeSubtitleText)
+              .fontSize(20)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#F8FAFC')
+              .textAlign(TextAlign.Center)
+              .padding({ left: 18, right: 18, top: 10, bottom: 10 })
+              .backgroundColor('#66020B17')
+              .borderRadius(16)
+              .margin({ left: 24, right: 24, bottom: 24 })
+          }
+        }
+        .height(360)
+        .width('100%')
+        .linearGradient({
+          angle: 135,
+          colors: [['#091423', 0], ['#102B52', 0.55], ['#163D7A', 1]]
+        })
+        .borderRadius(32)
+
+        Column({ space: 14 }) {
+          Row() {
+            Text(this.formatPlaybackTime(this.playback.currentTime))
+              .fontSize(12)
+              .fontColor(this.textSecondary())
+            Blank()
+            Text(this.playback.progress.toString() + '%')
+              .fontSize(12)
+              .fontColor(this.textSecondary())
+            Text(' / ')
+              .fontSize(12)
+              .fontColor(this.textMuted())
+            Text(this.formatPlaybackTime(this.playback.duration))
+              .fontSize(12)
+              .fontColor(this.textSecondary())
+          }
+          .width('100%')
+
+          Slider({
+            value: this.playback.progress,
+            min: 0,
+            max: 100,
+            step: 1
+          })
+            .blockColor('#2F6BFF')
+            .trackColor('#243B55')
+            .selectedColor('#60A5FA')
+            .onChange((value: number) => {
+              this.seekCurrent(value)
+            })
+
+          Row({ space: 12 }) {
+            Button('Prev')
+              .backgroundColor(this.canPlayPreviousInExperience() ? this.cardBackground() : this.cardBackgroundStrong())
+              .fontColor(this.textPrimary())
+              .borderRadius(14)
+              .enabled(this.canPlayPreviousInExperience())
+              .onClick(() => {
+                this.playPreviousInExperience()
+              })
+            Button(this.playback.status === 'playing' ? 'Pause' : 'Play')
+              .backgroundColor(this.accentBackground())
+              .fontColor('#FFFFFF')
+              .borderRadius(14)
+              .onClick(() => {
+                if (this.playback.status === 'playing') {
+                  this.pauseCurrent()
+                } else {
+                  this.playCurrent()
+                }
+              })
+            Button('Stop')
+              .backgroundColor(this.dangerBackground())
+              .fontColor('#FFFFFF')
+              .borderRadius(14)
+              .onClick(() => {
+                this.stopCurrent()
+              })
+            Button('Next')
+              .backgroundColor(this.canPlayNextInExperience() ? this.cardBackground() : this.cardBackgroundStrong())
+              .fontColor(this.textPrimary())
+              .borderRadius(14)
+              .enabled(this.canPlayNextInExperience())
+              .onClick(() => {
+                this.playNextInExperience()
+              })
+            Blank()
+            if (this.currentPlaybackItem() !== undefined) {
+              Button('Subtitles')
+                .backgroundColor(this.cardBackground())
+                .fontColor(this.textPrimary())
+                .borderRadius(14)
+                .onClick(() => {
+                  this.searchSubtitles(this.currentPlaybackItem() as MediaItem)
+                })
+            }
+          }
+          .width('100%')
+        }
+        .padding(22)
+        .width('100%')
+        .backgroundColor(this.cardBackgroundStrong())
+        .borderRadius(28)
+
+        if (this.playback.availableQualities.length > 0) {
+          Column({ space: 10 }) {
+            Text('Quality')
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.textSecondary())
+            Row({ space: 8 }) {
+              ForEach(this.playback.availableQualities, (item: PlaybackQualityItem) => {
+                Button(item.label)
+                  .fontSize(11)
+                  .backgroundColor(this.playback.activeQualityId === item.id ? this.accentBackground() : this.cardBackground())
+                  .fontColor(this.playback.activeQualityId === item.id ? '#FFFFFF' : this.textPrimary())
+                  .borderRadius(12)
+                  .onClick(() => {
+                    this.selectPlaybackQuality(item.id)
+                  })
+              })
+            }
+          }
+          .alignItems(HorizontalAlign.Start)
+          .padding(20)
+          .width('100%')
+          .backgroundColor(this.cardBackground())
+          .borderRadius(24)
+        }
+
+        if (this.subtitleResults.length > 0) {
+          this.InfoBanner('Subtitles', this.subtitleResults)
+        }
+      }
+      .alignItems(HorizontalAlign.Start)
+      .padding(28)
+      .width('100%')
+    }
+    .backgroundColor('#07111F')
+    .scrollBar(BarState.Off)
+  }
+
+  @Builder
+  private MusicPlaybackExperience() {
+    Scroll() {
+      Column({ space: 22 }) {
+        Row({ space: 12 }) {
+          Button('Back')
+            .backgroundColor(this.cardBackground())
+            .fontColor(this.textPrimary())
+            .borderRadius(16)
+            .onClick(() => {
+              this.closePlaybackExperience()
+            })
+          Blank()
+          Text('Music Player')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.textSecondary())
+        }
+        .width('100%')
+
+        Row({ space: 26 }) {
+          Stack({ alignContent: Alignment.Center }) {
+            Column() {
+            }
+            .width(300)
+            .height(300)
+            .backgroundColor('#1C3E6E')
+            .borderRadius(999)
+
+            Column() {
+            }
+            .width(96)
+            .height(96)
+            .backgroundColor('#0B1729')
+            .borderRadius(999)
+
+            Text('MUSIC')
+              .fontSize(22)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#F8FAFC')
+          }
+          .width(300)
+          .height(300)
+
+          Column({ space: 16 }) {
+            Text(this.playbackTitle())
+              .fontSize(34)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.textPrimary())
+              .maxLines(2)
+            Text(this.playbackSubtitle())
+              .fontSize(14)
+              .fontColor(this.textSecondary())
+            Text(this.playback.message === undefined ? 'Ready to play' : this.playback.message)
+              .fontSize(13)
+              .fontColor(this.textMuted())
+
+            Column({ space: 8 }) {
+              Text('Lyrics')
+                .fontSize(15)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(this.textPrimary())
+              Scroll() {
+                Column({ space: 8 }) {
+                  if (this.lyricLines.length === 0) {
+                    Text('No lyrics loaded yet.')
+                      .fontSize(13)
+                      .fontColor(this.textSecondary())
+                  } else {
+                    ForEach(this.lyricLines.slice(0, 24), (line: LyricLine, index: number) => {
+                      Text(line.text)
+                        .fontSize(this.currentLyricIndex === index ? 16 : 13)
+                        .fontWeight(this.currentLyricIndex === index ? FontWeight.Bold : FontWeight.Regular)
+                        .fontColor(this.currentLyricIndex === index ? '#2F6BFF' : this.textSecondary())
+                        .textAlign(TextAlign.Start)
+                        .width('100%')
+                    })
+                  }
+                }
+                .alignItems(HorizontalAlign.Start)
+                .width('100%')
+              }
+              .height(180)
+              .width('100%')
+            }
+            .alignItems(HorizontalAlign.Start)
+            .padding(16)
+            .width('100%')
+            .backgroundColor(this.cardBackground())
+            .borderRadius(22)
+
+            Column({ space: 10 }) {
+              Text('Queue')
+                .fontSize(15)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(this.textPrimary())
+              if (this.musicItems().length === 0) {
+                Text('No music tracks loaded.')
+                  .fontSize(13)
+                  .fontColor(this.textSecondary())
+              } else {
+                ForEach(this.musicItems().slice(0, 6), (item: MediaItem) => {
+                  Row() {
+                    Column({ space: 4 }) {
+                      Text(item.title)
+                        .fontSize(13)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor(this.currentPlaybackItem() !== undefined && this.currentPlaybackItem()!.id === item.id ? '#2F6BFF' : this.textPrimary())
+                        .maxLines(1)
+                      Text(item.fileExt === undefined ? 'MUSIC' : item.fileExt.toUpperCase())
+                        .fontSize(11)
+                        .fontColor(this.textSecondary())
+                    }
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1)
+                    Button('Play')
+                      .fontSize(11)
+                      .backgroundColor(this.cardBackground())
+                      .fontColor(this.textPrimary())
+                      .borderRadius(12)
+                      .onClick(() => {
+                        this.openMedia(item)
+                      })
+                  }
+                  .width('100%')
+                  .padding(12)
+                  .backgroundColor(this.cardBackground())
+                  .borderRadius(18)
+                })
+              }
+            }
+            .alignItems(HorizontalAlign.Start)
+            .width('100%')
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+        }
+        .width('100%')
+        .padding(28)
+        .linearGradient({
+          angle: 135,
+          colors: [['#EEF5FF', 0], ['#DDEBFF', 0.48], ['#F7FBFF', 1]]
+        })
+        .borderRadius(32)
+
+        Column({ space: 12 }) {
+          Row() {
+            Text(this.formatPlaybackTime(this.playback.currentTime))
+              .fontSize(12)
+              .fontColor(this.textSecondary())
+            Blank()
+            Text(this.formatPlaybackTime(this.playback.duration))
+              .fontSize(12)
+              .fontColor(this.textSecondary())
+          }
+          .width('100%')
+
+          Slider({
+            value: this.playback.progress,
+            min: 0,
+            max: 100,
+            step: 1
+          })
+            .blockColor('#2F6BFF')
+            .trackColor('#CBD5E1')
+            .selectedColor('#2F6BFF')
+            .onChange((value: number) => {
+              this.seekCurrent(value)
+            })
+
+          Row({ space: 12 }) {
+            Button('Prev')
+              .backgroundColor(this.canPlayPreviousInExperience() ? this.cardBackground() : this.cardBackgroundStrong())
+              .fontColor(this.textPrimary())
+              .borderRadius(14)
+              .enabled(this.canPlayPreviousInExperience())
+              .onClick(() => {
+                this.playPreviousInExperience()
+              })
+            Button(this.playback.status === 'playing' ? 'Pause' : 'Play')
+              .backgroundColor(this.accentBackground())
+              .fontColor('#FFFFFF')
+              .borderRadius(18)
+              .padding({ left: 18, right: 18 })
+              .onClick(() => {
+                if (this.playback.status === 'playing') {
+                  this.pauseCurrent()
+                } else {
+                  this.playCurrent()
+                }
+              })
+            Button('Next')
+              .backgroundColor(this.canPlayNextInExperience() ? this.cardBackground() : this.cardBackgroundStrong())
+              .fontColor(this.textPrimary())
+              .borderRadius(14)
+              .enabled(this.canPlayNextInExperience())
+              .onClick(() => {
+                this.playNextInExperience()
+              })
+            Button('Stop')
+              .backgroundColor(this.dangerBackground())
+              .fontColor('#FFFFFF')
+              .borderRadius(14)
+              .onClick(() => {
+                this.stopCurrent()
+              })
+            Blank()
+            Text(this.playback.progress.toString() + '%')
+              .fontSize(12)
+              .fontColor(this.textSecondary())
+          }
+          .width('100%')
+        }
+        .padding(22)
+        .width('100%')
+        .backgroundColor(this.cardBackgroundStrong())
+        .borderRadius(28)
       }
       .alignItems(HorizontalAlign.Start)
       .padding(28)
@@ -1597,16 +2366,20 @@ struct Index {
         await this.openMedia(item)
         this.statusMessage = '已打开播放会话：' + item.title
       }
-    } else if (entry.cloudFileId !== undefined && entry.cloudFileId.length > 0) {
+      } else if (entry.cloudFileId !== undefined && entry.cloudFileId.length > 0) {
       this.applySnapshot(
         await repository.openCloudFile(
           entry.cloudFileId,
           entry.name,
           this.sourceBrowserName,
           this.sourceBrowserCurrentFolderId,
-          this.activeSourceId
+          this.activeSourceId,
+          entry.type === 'audio' ? 'audio' : 'video'
         )
       )
+      this.playbackExperienceOpen = true
+      await this.loadPlaybackTextData(this.mediaItemFromSourceEntry(entry))
+      this.schedulePlaybackRefresh()
       this.statusMessage = '已打开云盘文件：' + entry.name
     }
   }
@@ -1777,6 +2550,23 @@ struct Index {
     .alignItems(HorizontalAlign.Start)
     .padding({ left: 28, right: 28, top: 14, bottom: 14 })
     .backgroundColor(this.playerBackground())
+  }
+
+  @Builder
+  private CompactPlaybackStatus() {
+    Row() {
+      Text(this.playbackTitle())
+        .fontSize(12)
+        .fontColor(this.textSecondary())
+        .maxLines(1)
+      Blank()
+      Text(this.playback.status + ' | ' + this.playback.progress.toString() + '%')
+        .fontSize(12)
+        .fontColor(this.textMuted())
+    }
+    .width('100%')
+    .padding({ left: 28, right: 28, top: 10, bottom: 10 })
+    .backgroundColor(this.contentBackground())
   }
 
   @Builder

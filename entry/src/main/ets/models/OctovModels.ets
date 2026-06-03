@@ -109,6 +109,16 @@ export interface SourceBrowserSnapshot {
   nextMarker?: string
 }
 
+export interface StorageBrowserSnapshot {
+  storageId: string
+  storageName: string
+  storageType: StorageType
+  currentFolderId: string
+  breadcrumbs: SourceBreadcrumbItem[]
+  entries: SourceBrowserEntry[]
+  nextMarker?: string
+}
+
 export interface NavigationSection {
   id: SectionId
   title: string
@@ -155,6 +165,11 @@ export interface AliyunQrSession {
 export interface SubtitleCue {
   startTime: number
   endTime: number
+  text: string
+}
+
+export interface LyricLine {
+  time: number
   text: string
 }
 
